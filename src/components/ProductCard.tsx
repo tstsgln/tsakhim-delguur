@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Product } from '@/lib/types';
 import { formatPrice } from '@/lib/data';
 import { useCart } from '@/lib/cart-context';
@@ -15,12 +16,23 @@ export default function ProductCard({ product }: ProductCardProps) {
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
+  const cover = product.images?.[0];
 
   return (
     <div className="group bg-surface rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
       <Link href={`/product/${product.id}`}>
         <div className="relative aspect-square">
-          <PlaceholderImage category={product.category} name={product.name} size="md" />
+          {cover ? (
+            <Image
+              src={cover}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 50vw, 25vw"
+              className="object-cover"
+            />
+          ) : (
+            <PlaceholderImage category={product.category} name={product.name} size="md" />
+          )}
           {product.isNew && (
             <span className="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-full font-medium z-10">
               Шинэ

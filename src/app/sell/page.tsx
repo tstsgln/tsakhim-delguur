@@ -1,8 +1,17 @@
-'use client';
-
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { db } from '@/lib/db';
+import { getSessionUser } from '@/lib/session';
+import { categories } from '@/lib/data';
+import SellerForm from './SellerForm';
 
-export default function SellPage() {
+export default async function SellPage() {
+  const user = await getSessionUser();
+  if (user) {
+    const existing = db.prepare('SELECT id FROM sellers WHERE user_id = ?').get(user.id);
+    if (existing) redirect('/seller/dashboard');
+  }
+
   return (
     <div>
       {/* Hero */}
@@ -12,9 +21,12 @@ export default function SellPage() {
           <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
             Монголын хамгийн том гар урлалын зах зээлд нэгдэж, мянга мянган худалдан авагчдад хүрээрэй.
           </p>
-          <button className="bg-white text-primary font-semibold px-10 py-3 rounded-lg hover:bg-gray-100 transition-colors text-lg">
+          <a
+            href="#register"
+            className="inline-block bg-white text-primary font-semibold px-10 py-3 rounded-lg hover:bg-gray-100 transition-colors text-lg"
+          >
             Бүртгүүлэх
-          </button>
+          </a>
         </div>
       </section>
 
@@ -67,81 +79,21 @@ export default function SellPage() {
       </section>
 
       {/* Seller form */}
-      <section className="max-w-2xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-center mb-8">Худалдаачийн бүртгэл</h2>
-        <form onSubmit={e => e.preventDefault()} className="bg-surface border border-border rounded-xl p-6 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Овог</label>
-              <input type="text" placeholder="Овог" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Нэр</label>
-              <input type="text" placeholder="Нэр" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-            </div>
+      <section id="register" className="max-w-2xl mx-auto px-4 py-16">
+        <h2 className="text-2xl font-bold text-center mb-8">Борлуулагчийн бүртгэл</h2>
+        {user ? (
+          <SellerForm categories={categories.map(c => ({ id: c.id, name: c.name }))} />
+        ) : (
+          <div className="bg-surface border border-border rounded-xl p-8 text-center">
+            <p className="text-muted mb-4">Борлуулагч болохын тулд эхлээд нэвтэрнэ үү.</p>
+            <Link
+              href="/login"
+              className="inline-block bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+            >
+              Нэвтрэх
+            </Link>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Дэлгүүрийн нэр</label>
-            <input type="text" placeholder="Таны дэлгүүрийн нэр" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Имэйл</label>
-            <input type="email" placeholder="name@example.com" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Утасны дугаар</label>
-            <input type="tel" placeholder="+976 0000-0000" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Байршил</label>
-            <select className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary bg-surface">
-              <option>Улаанбаатар</option>
-              <option>Дархан</option>
-              <option>Эрдэнэт</option>
-              <option>Бусад</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Бүтээгдэхүүний төрөл</label>
-            <select className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary bg-surface">
-              <option>Хувцас</option>
-              <option>Үнэт эдлэл</option>
-              <option>Урлаг</option>
-              <option>Гар урлал</option>
-              <option>Гэр ахуй</option>
-              <option>Хүнсний бүтээгдэхүүн</option>
-              <option>Хөгжмийн зэмсэг</option>
-              <option>Ном</option>
-              <option>Бусад</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Нэмэлт мэдээлэл</label>
-            <textarea
-              rows={3}
-              placeholder="Өөрийн бүтээгдэхүүний талаар товч тайлбарлана уу..."
-              className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
-            />
-          </div>
-
-          <label className="flex items-start gap-2 text-sm cursor-pointer">
-            <input type="checkbox" className="accent-primary mt-1" />
-            <span className="text-muted">Үйлчилгээний нөхцөлийг зөвшөөрч байна</span>
-          </label>
-
-          <button
-            type="submit"
-            className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
-          >
-            Бүртгүүлэх
-          </button>
-        </form>
+        )}
       </section>
     </div>
   );

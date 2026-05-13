@@ -1,10 +1,23 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { useActionState, useState } from 'react';
+import { login, signup, type AuthState } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
+  const [loginState, loginAction, loginPending] = useActionState<AuthState, FormData>(
+    login,
+    undefined,
+  );
+  const [signupState, signupAction, signupPending] = useActionState<AuthState, FormData>(
+    signup,
+    undefined,
+  );
+
+  const state = isRegister ? signupState : loginState;
+  const action = isRegister ? signupAction : loginAction;
+  const pending = isRegister ? signupPending : loginPending;
+  const errors = state?.errors;
 
   return (
     <div className="max-w-md mx-auto px-4 py-16">
@@ -16,44 +29,60 @@ export default function LoginPage() {
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-6">
-        <form onSubmit={e => e.preventDefault()} className="space-y-4">
+        <form action={action} className="space-y-4">
           {isRegister && (
             <div>
               <label className="block text-sm font-medium mb-1">Нэр</label>
               <input
+                name="name"
                 type="text"
                 placeholder="Таны нэр"
                 className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
               />
+              {errors?.name?.[0] && (
+                <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>
+              )}
             </div>
           )}
 
           <div>
             <label className="block text-sm font-medium mb-1">Имэйл</label>
             <input
+              name="email"
               type="email"
               placeholder="name@example.com"
               className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
             />
+            {errors?.email?.[0] && (
+              <p className="text-xs text-red-600 mt-1">{errors.email[0]}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">Нууц үг</label>
             <input
+              name="password"
               type="password"
               placeholder="••••••••"
               className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
             />
+            {errors?.password?.[0] && (
+              <p className="text-xs text-red-600 mt-1">{errors.password[0]}</p>
+            )}
           </div>
 
           {isRegister && (
             <div>
               <label className="block text-sm font-medium mb-1">Нууц үг давтах</label>
               <input
+                name="confirmPassword"
                 type="password"
                 placeholder="••••••••"
                 className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
               />
+              {errors?.confirmPassword?.[0] && (
+                <p className="text-xs text-red-600 mt-1">{errors.confirmPassword[0]}</p>
+              )}
             </div>
           )}
 
@@ -67,11 +96,16 @@ export default function LoginPage() {
             </div>
           )}
 
+          {state?.message && (
+            <p className="text-sm text-red-600 text-center">{state.message}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+            disabled={pending}
+            className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors disabled:opacity-60"
           >
-            {isRegister ? 'Бүртгүүлэх' : 'Нэвтрэх'}
+            {pending ? 'Түр хүлээнэ үү...' : isRegister ? 'Бүртгүүлэх' : 'Нэвтрэх'}
           </button>
         </form>
 

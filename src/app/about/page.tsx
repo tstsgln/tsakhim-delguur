@@ -21,11 +21,11 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold mb-4">Манай зорилго</h2>
             <p className="text-muted leading-relaxed mb-4">
-              Цахим Дэлгүүр нь Монголын гар урлалчид, жижиг үйлдвэрлэгчдийг дэмжих зорилготой онлайн зах зээл юм.
+              Цэцэглэн нь Монголын гар урлалчид, жижиг үйлдвэрлэгчдийг дэмжих зорилготой онлайн зах зээл юм.
               Бид Монголын уламжлалт урлаг, соёлыг дэлхийд таниулах, урчуудад шударга орлого олох боломж бүрдүүлэхийг зорьж байна.
             </p>
             <p className="text-muted leading-relaxed">
-              2020 оноос хойш бид 1,200 гаруй худалдаачидтай хамтран ажиллаж, 50,000 гаруй амжилттай борлуулалт хийсэн.
+              2020 оноос хойш бид 1,200 гаруй борлуулагчидтай хамтран ажиллаж, 50,000 гаруй амжилттай борлуулалт хийсэн.
             </p>
           </div>
           <div className="space-y-4">
@@ -92,7 +92,7 @@ export default function AboutPage() {
               <span className="text-xl">📧</span>
               <div>
                 <h3 className="font-medium">Имэйл</h3>
-                <p className="text-sm text-muted">info@tsakhimdel.mn</p>
+                <p className="text-sm text-muted">info@tsetseglen.mn</p>
               </div>
             </div>
             <div className="flex gap-3 items-start">

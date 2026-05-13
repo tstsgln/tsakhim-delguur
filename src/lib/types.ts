@@ -48,3 +48,48 @@ export interface Review {
   comment: string;
   date: string;
 }
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface SessionUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface SellerRow {
+  id: number;
+  user_id: number;
+  store_name: string;
+  phone: string;
+  location: string;
+  category: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface ProductRow {
+  id: number;
+  seller_id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  created_at: string;
+}
+
+export interface ProductImageRow {
+  id: number;
+  product_id: number;
+  path: string;
+  position: number;
+}
+
+export interface ProductWithImages extends ProductRow {
+  images: string[];
+}

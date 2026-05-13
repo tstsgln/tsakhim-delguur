@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <h3 className="text-xl font-bold mb-3">
-              <span className="text-accent">✦</span> Цахим Дэлгүүр
+              <span className="text-accent">✦</span> Цэцэглэн
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
               Монгол гар урлал, уламжлалт бүтээгдэхүүнийг дэлхий даяар хүргэх онлайн зах зээл.
@@ -21,7 +21,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link href="/products" className="hover:text-white transition-colors">Бүх бүтээгдэхүүн</Link></li>
               <li><Link href="/products?category=clothing" className="hover:text-white transition-colors">Хувцас</Link></li>
-              <li><Link href="/products?category=art" className="hover:text-white transition-colors">Урлаг</Link></li>
+              <li><Link href="/products?category=jewelry" className="hover:text-white transition-colors">Үнэт эдлэл</Link></li>
               <li><Link href="/products?category=crafts" className="hover:text-white transition-colors">Гар урлал</Link></li>
             </ul>
           </div>
@@ -41,7 +41,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-3">Холбоо барих</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>📧 info@tsakhimdel.mn</li>
+              <li>📧 info@tsetseglen.mn</li>
               <li>📞 +976 7700-0000</li>
               <li>📍 Улаанбаатар, Монгол</li>
             </ul>
@@ -54,7 +54,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-          <p>© 2024 Цахим Дэлгүүр. Бүх эрх хуулиар хамгаалагдсан.</p>
+          <p>© 2024 Цэцэглэн. Бүх эрх хуулиар хамгаалагдсан.</p>
           <div className="flex gap-4 mt-2 md:mt-0">
             <Link href="/about" className="hover:text-white transition-colors">Нууцлалын бодлого</Link>
             <Link href="/about" className="hover:text-white transition-colors">Үйлчилгээний нөхцөл</Link>
