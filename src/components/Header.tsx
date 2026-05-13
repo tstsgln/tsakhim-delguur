@@ -27,23 +27,13 @@ export default function Header({ user }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 bg-surface shadow-sm">
-      {/* Top bar */}
-      <div className="bg-primary text-white text-sm py-1.5">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-          <span>🇲🇳 Монгол гар урлалын шилдэг бүтээлүүд</span>
-          <div className="hidden md:flex gap-4">
-            <Link href="/sell" className="hover:underline">Борлуулагч болох</Link>
-          </div>
-        </div>
-      </div>
-
       {/* Main header */}
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <h1 className="text-2xl font-bold text-primary">
-              <span className="text-accent">✦</span> Цэцэглэн
+              <span>🌸</span> Цэцэглэн
             </h1>
           </Link>
 
@@ -79,24 +69,40 @@ export default function Header({ user }: HeaderProps) {
                   <span className="text-xs">▾</span>
                 </button>
                 {userDropdown && (
-                  <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-2 w-48 z-50">
+                  <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-2 w-60 z-50">
                     <div className="px-4 py-2 border-b border-border">
                       <p className="text-sm font-medium truncate">{user.name}</p>
                       <p className="text-xs text-muted truncate">{user.email}</p>
                     </div>
-                    <Link
-                      href="/favorites"
-                      className="block px-4 py-2 text-sm hover:bg-primary-light/20"
-                      onClick={() => setUserDropdown(false)}
-                    >
-                      ♡ Хадгалсан
+                    <Link href="/messages" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>💬</span> Зурвасууд
                     </Link>
+                    <Link href="/balance" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>💳</span> Дансны үлдэгдэл
+                    </Link>
+                    <Link href="/purchases" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>🛍️</span> Худалдан авалт
+                    </Link>
+                    <Link href="/favorites" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>♡</span> Хадгалсан
+                    </Link>
+                    <div className="border-t border-border my-1" />
+                    <Link href="/sell" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>🏪</span> Борлуулагч болох
+                    </Link>
+                    <Link href="/settings" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>⚙️</span> Бүртгэлийн тохиргоо
+                    </Link>
+                    <Link href="/help" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>❓</span> Тусламжийн төв
+                    </Link>
+                    <div className="border-t border-border my-1" />
                     <form action={logout}>
                       <button
                         type="submit"
-                        className="block w-full text-left px-4 py-2 text-sm hover:bg-primary-light/20 text-red-600"
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-primary-light/20 text-red-600"
                       >
-                        ⎋ Гарах
+                        <span>⎋</span> Гарах
                       </button>
                     </form>
                   </div>

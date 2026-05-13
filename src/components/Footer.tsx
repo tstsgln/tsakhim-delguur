@@ -8,7 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <h3 className="text-xl font-bold mb-3">
-              <span className="text-accent">✦</span> Цэцэглэн
+              <span>🌸</span> Цэцэглэн
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
               Монгол гар урлал, уламжлалт бүтээгдэхүүнийг дэлхий даяар хүргэх онлайн зах зээл.
