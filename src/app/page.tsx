@@ -11,6 +11,25 @@ export default async function HomePage() {
 
   return (
     <div className="bg-background">
+      {/* Ad space placeholder */}
+      <section className="max-w-7xl mx-auto px-4 pt-6">
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary-light/40 via-primary/5 to-primary-light/40 p-6 md:p-10 text-center">
+          <div className="absolute -top-10 -right-6 text-[10rem] opacity-15 leading-none select-none pointer-events-none">🌸</div>
+          <div className="absolute -bottom-12 -left-8 text-[9rem] opacity-15 leading-none select-none pointer-events-none">✨</div>
+          <div className="relative">
+            <p className="inline-block bg-primary/10 text-primary text-[11px] font-semibold tracking-widest px-3 py-1 rounded-full mb-3">
+              РЕКЛАМЫН ОРОН ЗАЙ
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold text-primary-dark mb-2">
+              Таны рекламны орон зай
+            </h2>
+            <p className="text-sm md:text-base text-muted max-w-xl mx-auto">
+              Удахгүй та энэ хэсэгт өөрийн брэнд, бүтээгдэхүүнээ төлбөртэйгөөр байршуулж сурталчлах боломжтой болно.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Categories */}
       <section className="max-w-7xl mx-auto px-4 py-10">
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
