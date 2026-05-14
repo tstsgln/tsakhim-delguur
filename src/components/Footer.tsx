@@ -11,7 +11,7 @@ export default function Footer() {
               <span>🌸</span> Цэцэглэн
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Монгол гар урлал, уламжлалт бүтээгдэхүүнийг дэлхий даяар хүргэх онлайн зах зээл.
+              Манай дотоодын урчуудыг дэмжих онлайн платформ.
             </p>
           </div>
 
@@ -41,15 +41,10 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-3">Холбоо барих</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>📧 info@tsetseglen.mn</li>
-              <li>📞 +976 7700-0000</li>
+              <li>📧 tstsegi22@gmail.com</li>
+              <li>📞 +976 89040207</li>
               <li>📍 Улаанбаатар, Монгол</li>
             </ul>
-            <div className="flex gap-3 mt-4 text-xl">
-              <a href="#" className="hover:text-accent transition-colors">𝕏</a>
-              <a href="#" className="hover:text-accent transition-colors">📘</a>
-              <a href="#" className="hover:text-accent transition-colors">📷</a>
-            </div>
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
 import { categories } from '@/lib/data';
 import type { SessionUser } from '@/lib/types';
@@ -9,14 +9,27 @@ import { logout } from '@/app/actions/auth';
 
 interface HeaderProps {
   user: SessionUser | null;
+  isSeller: boolean;
 }
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({ user, isSeller }: HeaderProps) {
   const { totalItems } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoryDropdown, setCategoryDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [userDropdown]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +72,7 @@ export default function Header({ user }: HeaderProps) {
           {/* Right actions */}
           <div className="flex items-center gap-3 ml-auto">
             {user ? (
-              <div className="relative hidden md:block">
+              <div ref={userMenuRef} className="relative hidden md:block">
                 <button
                   onClick={() => setUserDropdown(v => !v)}
                   className="flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors"
@@ -87,9 +100,15 @@ export default function Header({ user }: HeaderProps) {
                       <span>♡</span> Хадгалсан
                     </Link>
                     <div className="border-t border-border my-1" />
-                    <Link href="/sell" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
-                      <span>🏪</span> Борлуулагч болох
-                    </Link>
+                    {isSeller ? (
+                      <Link href="/seller/dashboard" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                        <span>🏪</span> Миний дэлгүүр
+                      </Link>
+                    ) : (
+                      <Link href="/sell" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                        <span>🏪</span> Борлуулагч болох
+                      </Link>
+                    )}
                     <Link href="/settings" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
                       <span>⚙️</span> Бүртгэлийн тохиргоо
                     </Link>
@@ -212,7 +231,11 @@ export default function Header({ user }: HeaderProps) {
             ) : (
               <Link href="/login" className="block py-2 text-sm">👤 Нэвтрэх</Link>
             )}
-            <Link href="/sell" className="block py-2 text-sm">🏪 Борлуулагч болох</Link>
+            {isSeller ? (
+              <Link href="/seller/dashboard" className="block py-2 text-sm">🏪 Миний дэлгүүр</Link>
+            ) : (
+              <Link href="/sell" className="block py-2 text-sm">🏪 Борлуулагч болох</Link>
+            )}
             <div className="border-t border-border pt-2 mt-2">
               <p className="text-xs text-muted mb-2">Ангилал</p>
               {categories.map(cat => (

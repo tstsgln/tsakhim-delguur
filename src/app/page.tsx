@@ -13,17 +13,14 @@ export default async function HomePage() {
     <div className="bg-background">
       {/* Ad space placeholder */}
       <section className="max-w-7xl mx-auto px-4 pt-6">
-        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary-light/40 via-primary/5 to-primary-light/40 p-6 md:p-10 text-center">
-          <div className="absolute -top-10 -right-6 text-[10rem] opacity-15 leading-none select-none pointer-events-none">🌸</div>
-          <div className="absolute -bottom-12 -left-8 text-[9rem] opacity-15 leading-none select-none pointer-events-none">✨</div>
+        <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-r from-primary-light/40 via-primary/5 to-primary-light/40 p-10 md:p-20 lg:p-24 text-center min-h-[320px] md:min-h-[420px] flex items-center justify-center">
+          <div className="absolute -top-16 -right-10 text-[16rem] opacity-15 leading-none select-none pointer-events-none">🌸</div>
+          <div className="absolute -bottom-20 -left-12 text-[14rem] opacity-15 leading-none select-none pointer-events-none">✨</div>
           <div className="relative">
-            <p className="inline-block bg-primary/10 text-primary text-[11px] font-semibold tracking-widest px-3 py-1 rounded-full mb-3">
-              РЕКЛАМЫН ОРОН ЗАЙ
-            </p>
-            <h2 className="text-2xl md:text-3xl font-bold text-primary-dark mb-2">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-primary-dark mb-4 md:mb-6">
               Таны рекламны орон зай
             </h2>
-            <p className="text-sm md:text-base text-muted max-w-xl mx-auto">
+            <p className="text-base md:text-lg lg:text-xl text-muted max-w-2xl mx-auto">
               Удахгүй та энэ хэсэгт өөрийн брэнд, бүтээгдэхүүнээ төлбөртэйгөөр байршуулж сурталчлах боломжтой болно.
             </p>
           </div>
@@ -92,14 +89,14 @@ export default async function HomePage() {
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-2">Яагаад Цэцэглэн?</h2>
-          <p className="text-muted">Бид Монголын уламжлалт урлагийг хадгалж, дэлхийд танилцуулж байна</p>
+          <p className="text-muted">Бид манай дотоодын урчуудаа дэмжих платформ</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: '🇲🇳', title: 'Жинхэнэ Монгол', desc: 'Монголын урчуудын гар хийцийн бүтээлүүд' },
             { icon: '🤝', title: 'Шударга үнэ', desc: 'Урчуудаас шууд авах боломж, нэмэлт зардалгүй' },
-            { icon: '🚚', title: 'Найдвартай хүргэлт', desc: 'Бүх аймагт, олон улсад хүргэх боломжтой' },
+            { icon: '🚚', title: 'Найдвартай хүргэлт', desc: 'Монгол улсын бүх аймагт хүргэх боломжтой' },
             { icon: '🔒', title: 'Аюулгүй худалдаа', desc: 'Хамгаалагдсан төлбөр, зөвлөгөө 24/7' },
           ].map(item => (
             <div key={item.title} className="bg-surface border border-border rounded-2xl p-6 hover:shadow-md transition-shadow">
@@ -142,10 +139,10 @@ export default async function HomePage() {
           <div className="relative max-w-2xl">
             <p className="text-accent font-semibold text-sm mb-3">УРЧУУДАД ЗОРИУЛАВ</p>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Бүтээлээ дэлхийд<br />танилцуулаарай
+              Бүтээлээ дотоодын<br />зах зээлд танилцуулаарай
             </h2>
             <p className="text-muted mb-8 text-lg">
-              Үнэгүй бүртгүүлж, өөрийн дэлгүүрээ нээ. Зөвхөн борлуулалтаас 5% шимтгэл.
+              Үнэгүй бүртгүүлж, өөрийн дэлгүүрээ нээ.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link

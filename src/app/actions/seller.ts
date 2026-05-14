@@ -68,6 +68,48 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
   redirect('/seller/dashboard');
 }
 
+const UpdateSellerSchema = z.object({
+  storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
+  phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
+  location: z.string().trim().min(1, 'Байршил шаардлагатай'),
+  description: z.string().trim().optional(),
+});
+
+export type UpdateSellerState =
+  | {
+      errors?: Partial<Record<keyof z.infer<typeof UpdateSellerSchema>, string[]>>;
+      message?: string;
+      success?: boolean;
+    }
+  | undefined;
+
+export async function updateSeller(_state: UpdateSellerState, formData: FormData): Promise<UpdateSellerState> {
+  const user = await getSessionUser();
+  if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
+
+  const existing = db.prepare('SELECT id FROM sellers WHERE user_id = ?').get(user.id);
+  if (!existing) return { message: 'Та борлуулагч биш байна' };
+
+  const parsed = UpdateSellerSchema.safeParse({
+    storeName: formData.get('storeName'),
+    phone: formData.get('phone'),
+    location: formData.get('location'),
+    description: formData.get('description') ?? '',
+  });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const data = parsed.data;
+  db.prepare(
+    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, description = ? WHERE user_id = ?`,
+  ).run(data.storeName, data.phone, data.location, data.description || null, user.id);
+
+  revalidatePath('/seller/dashboard');
+  return { success: true };
+}
+
 const ProductSchema = z.object({
   name: z.string().trim().min(2, 'Бүтээгдэхүүний нэр доод тал нь 2 тэмдэгт'),
   description: z.string().trim().min(10, 'Тайлбар доод тал нь 10 тэмдэгт'),

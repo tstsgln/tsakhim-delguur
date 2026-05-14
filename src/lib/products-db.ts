@@ -13,7 +13,21 @@ interface JoinedRow {
   store_name: string;
   seller_location: string;
   seller_joined: string;
+  seller_phone?: string;
+  seller_description?: string | null;
   images: string;
+}
+
+export interface ProductDetail {
+  product: Product;
+  seller: {
+    id: number;
+    storeName: string;
+    location: string;
+    phone: string;
+    description: string | null;
+    joinedDate: string;
+  };
 }
 
 const NEW_WINDOW_DAYS = 30;
@@ -80,6 +94,91 @@ export function getAllProducts(): Product[] {
 export function getProductById(id: number): Product | null {
   const row = db.prepare(`${BASE_QUERY} WHERE p.id = ?`).get(id) as JoinedRow | undefined;
   return row ? toProduct(row) : null;
+}
+
+const DETAIL_QUERY = `
+  SELECT
+    p.id,
+    p.name,
+    p.description,
+    p.price,
+    p.category,
+    p.created_at,
+    s.id AS seller_id,
+    s.store_name,
+    s.location AS seller_location,
+    s.created_at AS seller_joined,
+    s.phone AS seller_phone,
+    s.description AS seller_description,
+    COALESCE(
+      (SELECT json_group_array(path)
+       FROM (
+         SELECT path FROM product_images
+         WHERE product_id = p.id
+         ORDER BY position ASC
+       )
+      ),
+      '[]'
+    ) AS images
+  FROM products p
+  JOIN sellers s ON s.id = p.seller_id
+  WHERE p.id = ?
+`;
+
+export function getProductDetail(id: number): ProductDetail | null {
+  const row = db.prepare(DETAIL_QUERY).get(id) as JoinedRow | undefined;
+  if (!row) return null;
+  return {
+    product: toProduct(row),
+    seller: {
+      id: row.seller_id,
+      storeName: row.store_name,
+      location: row.seller_location,
+      phone: row.seller_phone ?? '',
+      description: row.seller_description ?? null,
+      joinedDate: row.seller_joined,
+    },
+  };
+}
+
+export interface SellerStore {
+  id: number;
+  storeName: string;
+  location: string;
+  phone: string;
+  description: string | null;
+  joinedDate: string;
+}
+
+interface SellerRow {
+  id: number;
+  store_name: string;
+  location: string;
+  phone: string;
+  description: string | null;
+  created_at: string;
+}
+
+export function getSellerStore(id: number): SellerStore | null {
+  const row = db
+    .prepare('SELECT id, store_name, location, phone, description, created_at FROM sellers WHERE id = ?')
+    .get(id) as SellerRow | undefined;
+  if (!row) return null;
+  return {
+    id: row.id,
+    storeName: row.store_name,
+    location: row.location,
+    phone: row.phone,
+    description: row.description,
+    joinedDate: row.created_at,
+  };
+}
+
+export function getProductsBySeller(sellerId: number): Product[] {
+  const rows = db
+    .prepare(`${BASE_QUERY} WHERE s.id = ? ORDER BY p.created_at DESC`)
+    .all(sellerId) as JoinedRow[];
+  return rows.map(toProduct);
 }
 
 export function getCategoryCounts(): Record<string, number> {

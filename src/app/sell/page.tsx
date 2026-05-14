@@ -58,12 +58,12 @@ export default async function SellPage() {
           <h2 className="text-2xl font-bold text-center mb-12">Яагаад биднийг сонгох вэ?</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {[
-              { icon: '🌍', title: 'Дэлхий даяар хүрэх', desc: 'Та Монгол дотоод болон олон улсын худалдан авагчдад хүрэх боломжтой.' },
+              { icon: '🏔️', title: 'Дотоодын зах зээл', desc: 'Та өөрийн бүтээлийг Монгол даяар худалдан авагчдад хүргэх боломжтой.' },
               { icon: '💳', title: 'Аюулгүй төлбөр', desc: 'Бид аюулгүй төлбөрийн системтэй. Таны орлого найдвартай хамгаалагдсан.' },
               { icon: '📊', title: 'Борлуулалтын тайлан', desc: 'Дэлгэрэнгүй борлуулалтын тайлан, статистик мэдээллийг харна уу.' },
               { icon: '🤝', title: 'Дэмжлэг', desc: 'Манай баг танд тусалж, зөвлөгөө өгөхөд бэлэн байна.' },
               { icon: '📦', title: 'Хүргэлтийн тусламж', desc: 'Бид хүргэлтийн үйлчилгээтэй хамтран ажилладаг.' },
-              { icon: '🏷️', title: 'Бага шимтгэл', desc: 'Зөвхөн борлуулалтаас 5% шимтгэл. Бүртгэл үнэгүй.' },
+              { icon: '🏷️', title: 'Үнэгүй бүртгэл', desc: 'Дэлгүүр нээх, бараа байршуулах нь үнэгүй.' },
             ].map(item => (
               <div key={item.title} className="flex gap-4 p-4 rounded-xl border border-border bg-background">
                 <span className="text-3xl flex-shrink-0">{item.icon}</span>

@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import { categories, formatPrice } from '@/lib/data';
 import type { SellerRow, ProductRow } from '@/lib/types';
+import SellerInfoCard from './SellerInfoCard';
 
 interface ProductListItem extends ProductRow {
   cover_image: string | null;
@@ -36,25 +37,14 @@ export default async function SellerDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="bg-surface border border-border rounded-xl p-6 mb-8">
-        <div className="flex flex-wrap justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{seller.store_name}</h1>
-            <p className="text-sm text-muted mt-1">
-              📍 {seller.location} · 📞 {seller.phone}
-            </p>
-            {seller.description && (
-              <p className="text-sm text-muted mt-2 max-w-2xl">{seller.description}</p>
-            )}
-          </div>
-          <Link
-            href="/seller/products/new"
-            className="self-start bg-primary text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
-          >
-            + Бараа нэмэх
-          </Link>
-        </div>
-      </div>
+      <SellerInfoCard
+        seller={{
+          store_name: seller.store_name,
+          phone: seller.phone,
+          location: seller.location,
+          description: seller.description,
+        }}
+      />
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Миний бүтээгдэхүүнүүд</h2>
