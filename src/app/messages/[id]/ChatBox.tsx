@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { sendMessage, type SendMessageState } from '@/app/actions/chat';
 import type { MessageRow } from '@/lib/chat-db';
 
+const NOTIFY_TITLE = 'Шинэ зурвас';
+
 interface Props {
   conversationId: number;
   currentUserId: number;
@@ -22,6 +24,9 @@ export default function ChatBox({ conversationId, currentUserId, initialMessages
   const [state, action, pending] = useActionState<SendMessageState, FormData>(bound, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastSeenIdRef = useRef<number>(
+    initialMessages.length > 0 ? initialMessages[initialMessages.length - 1].id : 0,
+  );
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,6 +39,36 @@ export default function ChatBox({ conversationId, currentUserId, initialMessages
       formRef.current?.reset();
     }
   }, [pending]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialMessages.length === 0) return;
+    const newest = initialMessages[initialMessages.length - 1];
+    if (newest.id <= lastSeenIdRef.current) {
+      lastSeenIdRef.current = newest.id;
+      return;
+    }
+    const incoming = initialMessages.filter(
+      m => m.id > lastSeenIdRef.current && m.sender_user_id !== currentUserId,
+    );
+    lastSeenIdRef.current = newest.id;
+    if (incoming.length === 0) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') return;
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      const last = incoming[incoming.length - 1];
+      try {
+        new Notification(NOTIFY_TITLE, { body: last.body, tag: `convo-${conversationId}` });
+      } catch {
+        // ignore
+      }
+    }
+  }, [initialMessages, currentUserId, conversationId]);
 
   useEffect(() => {
     const interval = setInterval(() => router.refresh(), 5000);

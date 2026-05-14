@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
 import { categories } from '@/lib/data';
@@ -10,9 +11,55 @@ import { logout } from '@/app/actions/auth';
 interface HeaderProps {
   user: SessionUser | null;
   isSeller: boolean;
+  unreadCount: number;
 }
 
-export default function Header({ user, isSeller }: HeaderProps) {
+export default function Header({ user, isSeller, unreadCount: initialUnread }: HeaderProps) {
+  const [unreadCount, setUnreadCount] = useState(initialUnread);
+  const router = useRouter();
+
+  useEffect(() => {
+    setUnreadCount(initialUnread);
+  }, [initialUnread]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+    const tick = async () => {
+      try {
+        const res = await fetch('/api/unread', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as { count: number };
+        setUnreadCount(prev => {
+          if (data.count > prev) {
+            const delta = data.count - prev;
+            if (
+              typeof window !== 'undefined' &&
+              'Notification' in window &&
+              Notification.permission === 'granted'
+            ) {
+              try {
+                new Notification('Шинэ зурвас', {
+                  body: delta > 1 ? `${delta} шинэ зурвас ирлээ` : 'Танд шинэ зурвас ирлээ',
+                  tag: 'unread-count',
+                });
+              } catch {
+                // ignore
+              }
+            }
+            router.refresh();
+          }
+          return data.count;
+        });
+      } catch {
+        // ignore
+      }
+    };
+    const interval = setInterval(tick, 15000);
+    return () => clearInterval(interval);
+  }, [user, router]);
   const { totalItems } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -75,11 +122,16 @@ export default function Header({ user, isSeller }: HeaderProps) {
               <div ref={userMenuRef} className="relative hidden md:block">
                 <button
                   onClick={() => setUserDropdown(v => !v)}
-                  className="flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors relative"
                 >
                   <span className="text-xl">👤</span>
                   <span>{user.name}</span>
                   <span className="text-xs">▾</span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </button>
                 {userDropdown && (
                   <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-2 w-60 z-50">
@@ -87,8 +139,13 @@ export default function Header({ user, isSeller }: HeaderProps) {
                       <p className="text-sm font-medium truncate">{user.name}</p>
                       <p className="text-xs text-muted truncate">{user.email}</p>
                     </div>
-                    <Link href="/messages" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
-                      <span>💬</span> Зурвасууд
+                    <Link href="/messages" onClick={() => setUserDropdown(false)} className="flex items-center justify-between gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span className="flex items-center gap-2"><span>💬</span> Зурвасууд</span>
+                      {unreadCount > 0 && (
+                        <span className="bg-primary text-white text-[10px] leading-none rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
                     </Link>
                     <Link href="/balance" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
                       <span>💳</span> Дансны үлдэгдэл

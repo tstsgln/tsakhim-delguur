@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/session';
-import { getConversationForUser, listMessages } from '@/lib/chat-db';
+import { getConversationForUser, listMessages, markConversationRead } from '@/lib/chat-db';
 import ChatBox from './ChatBox';
 
 export const dynamic = 'force-dynamic';
@@ -21,6 +21,7 @@ export default async function ConversationPage({ params }: PageProps) {
   const convo = getConversationForUser(conversationId, user.id);
   if (!convo) notFound();
 
+  markConversationRead(conversationId, user.id);
   const messages = listMessages(conversationId);
   const isBuyer = convo.buyer_user_id === user.id;
   const partnerName = isBuyer ? convo.store_name : convo.buyer_name;

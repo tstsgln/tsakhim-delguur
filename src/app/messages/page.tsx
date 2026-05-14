@@ -48,12 +48,21 @@ export default async function MessagesPage() {
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium truncate">{c.partner_name}</p>
+                  <p className={`truncate ${c.unread_count > 0 ? 'font-bold' : 'font-medium'}`}>
+                    {c.partner_name}
+                  </p>
                   <span className="text-xs text-muted flex-shrink-0">{formatTime(c.last_at)}</span>
                 </div>
-                <p className="text-sm text-muted truncate">
-                  {c.last_message ?? <span className="italic">Шинэ яриа</span>}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-sm truncate ${c.unread_count > 0 ? 'text-foreground font-medium' : 'text-muted'}`}>
+                    {c.last_message ?? <span className="italic">Шинэ яриа</span>}
+                  </p>
+                  {c.unread_count > 0 && (
+                    <span className="bg-primary text-white text-[10px] leading-none rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center font-bold flex-shrink-0">
+                      {c.unread_count > 99 ? '99+' : c.unread_count}
+                    </span>
+                  )}
+                </div>
               </div>
             </Link>
           ))}

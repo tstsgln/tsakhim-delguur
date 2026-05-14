@@ -70,7 +70,8 @@ if (!global.__sqliteDb) {
       conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
       sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      read_at TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, created_at);
@@ -81,6 +82,11 @@ if (!global.__sqliteDb) {
   const sellerCols = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;
   if (sellerCols.some(c => c.name === 'category')) {
     db.exec('ALTER TABLE sellers DROP COLUMN category');
+  }
+
+  const messageCols = db.prepare("PRAGMA table_info(messages)").all() as Array<{ name: string }>;
+  if (messageCols.length > 0 && !messageCols.some(c => c.name === 'read_at')) {
+    db.exec('ALTER TABLE messages ADD COLUMN read_at TEXT');
   }
 
   global.__sqliteDb = db;
