@@ -12,9 +12,10 @@ interface HeaderProps {
   user: SessionUser | null;
   isSeller: boolean;
   unreadCount: number;
+  isAdmin: boolean;
 }
 
-export default function Header({ user, isSeller, unreadCount: initialUnread }: HeaderProps) {
+export default function Header({ user, isSeller, unreadCount: initialUnread, isAdmin }: HeaderProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnread);
   const router = useRouter();
 
@@ -172,6 +173,14 @@ export default function Header({ user, isSeller, unreadCount: initialUnread }: H
                     <Link href="/help" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
                       <span>❓</span> Тусламжийн төв
                     </Link>
+                    <Link href="/feedback" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>💌</span> Санал, гомдол
+                    </Link>
+                    {isAdmin && (
+                      <Link href="/admin" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20 text-primary font-medium">
+                        <span>🛠️</span> Админ
+                      </Link>
+                    )}
                     <div className="border-t border-border my-1" />
                     <form action={logout}>
                       <button

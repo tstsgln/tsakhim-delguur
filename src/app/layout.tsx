@@ -6,6 +6,7 @@ import { CartProvider } from "@/lib/cart-context";
 import { getSessionUser } from "@/lib/session";
 import { db } from "@/lib/db";
 import { getUnreadCount } from "@/lib/chat-db";
+import { isAdmin } from "@/lib/admin";
 
 export const metadata: Metadata = {
   title: "Цэцэглэн - Монгол гар урлалын зах зээл",
@@ -22,11 +23,12 @@ export default async function RootLayout({
     ? !!db.prepare('SELECT 1 FROM sellers WHERE user_id = ?').get(user.id)
     : false;
   const unreadCount = user ? getUnreadCount(user.id) : 0;
+  const userIsAdmin = isAdmin(user);
   return (
     <html lang="mn" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <CartProvider>
-          <Header user={user} isSeller={isSeller} unreadCount={unreadCount} />
+          <Header user={user} isSeller={isSeller} unreadCount={unreadCount} isAdmin={userIsAdmin} />
           <main className="flex-1">{children}</main>
           <Footer />
         </CartProvider>

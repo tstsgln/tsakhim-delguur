@@ -1,5 +1,8 @@
 'use server';
 
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -10,6 +13,10 @@ import {
   getConversationForUser,
   insertMessage,
 } from '@/lib/chat-db';
+
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export async function startConversationWithSeller(formData: FormData): Promise<void> {
   const sellerId = Number(formData.get('sellerId'));
@@ -31,10 +38,6 @@ export async function startConversationWithSeller(formData: FormData): Promise<v
   redirect(`/messages/${conversationId}`);
 }
 
-const MessageSchema = z.object({
-  body: z.string().trim().min(1).max(2000),
-});
-
 export type SendMessageState =
   | {
       message?: string;
@@ -49,13 +52,37 @@ export async function sendMessage(
   const user = await getSessionUser();
   if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
 
-  const parsed = MessageSchema.safeParse({ body: formData.get('body') });
-  if (!parsed.success) return { message: 'Зурвас хоосон байж болохгүй' };
-
   const convo = getConversationForUser(conversationId, user.id);
   if (!convo) return { message: 'Зурвасын хэрэглэгч олдсонгүй' };
 
-  insertMessage(conversationId, user.id, parsed.data.body);
+  const rawBody = formData.get('body');
+  const body = typeof rawBody === 'string' ? rawBody.trim() : '';
+  if (body.length > 2000) return { message: 'Зурвас 2000 тэмдэгтээс хэтэрсэн байна' };
+
+  const rawImage = formData.get('image');
+  const file = rawImage instanceof File && rawImage.size > 0 ? rawImage : null;
+
+  if (!body && !file) return { message: 'Зурвас эсвэл зураг оруулна уу' };
+
+  let imagePath: string | null = null;
+  if (file) {
+    const ext = path.extname(file.name).toLowerCase();
+    const typeOk = file.type && ALLOWED_IMAGE_TYPES.has(file.type);
+    const extOk = ALLOWED_IMAGE_EXTS.has(ext);
+    if (!typeOk && !extOk) return { message: 'Зургийн төрөл буруу байна' };
+    if (file.size > MAX_IMAGE_BYTES) return { message: 'Зураг 8MB-аас их байна' };
+
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'chat');
+    await fs.mkdir(uploadsDir, { recursive: true });
+    const safeExt = ALLOWED_IMAGE_EXTS.has(ext) ? ext : '.jpg';
+    const filename = `${crypto.randomUUID()}${safeExt}`;
+    const fullPath = path.join(uploadsDir, filename);
+    const bytes = Buffer.from(await file.arrayBuffer());
+    await fs.writeFile(fullPath, bytes);
+    imagePath = `/uploads/chat/${filename}`;
+  }
+
+  insertMessage(conversationId, user.id, body, imagePath);
   revalidatePath(`/messages/${conversationId}`);
   revalidatePath('/messages');
   return undefined;

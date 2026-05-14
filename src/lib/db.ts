@@ -17,6 +17,12 @@ export const db = global.__sqliteDb ?? new Database(dbPath);
 if (!global.__sqliteDb) {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
+  global.__sqliteDb = db;
+}
+
+const SCHEMA_VERSION = 6;
+const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
+if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +76,7 @@ if (!global.__sqliteDb) {
       conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
       sender_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
+      image_path TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       read_at TEXT
     );
@@ -77,6 +84,17 @@ if (!global.__sqliteDb) {
     CREATE INDEX IF NOT EXISTS idx_messages_conv ON messages(conversation_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_conv_buyer ON conversations(buyer_user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_conv_seller ON conversations(seller_id, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL DEFAULT 'suggestion',
+      subject TEXT,
+      body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'new',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_feedback_status_created ON feedback(status, created_at DESC);
   `);
 
   const sellerCols = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;
@@ -88,6 +106,9 @@ if (!global.__sqliteDb) {
   if (messageCols.length > 0 && !messageCols.some(c => c.name === 'read_at')) {
     db.exec('ALTER TABLE messages ADD COLUMN read_at TEXT');
   }
+  if (messageCols.length > 0 && !messageCols.some(c => c.name === 'image_path')) {
+    db.exec('ALTER TABLE messages ADD COLUMN image_path TEXT');
+  }
 
-  global.__sqliteDb = db;
+  db.pragma(`user_version = ${SCHEMA_VERSION}`);
 }

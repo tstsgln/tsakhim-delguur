@@ -34,6 +34,7 @@ export default function Footer() {
               <li><Link href="/about" className="hover:text-white transition-colors">Хүргэлтийн мэдээлэл</Link></li>
               <li><Link href="/about" className="hover:text-white transition-colors">Буцаалтын бодлого</Link></li>
               <li><Link href="/about" className="hover:text-white transition-colors">Холбоо барих</Link></li>
+              <li><Link href="/feedback" className="hover:text-white transition-colors">Санал, гомдол</Link></li>
             </ul>
           </div>
 

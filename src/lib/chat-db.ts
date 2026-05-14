@@ -16,6 +16,7 @@ export interface MessageRow {
   id: number;
   sender_user_id: number;
   body: string;
+  image_path: string | null;
   created_at: string;
 }
 
@@ -66,16 +67,21 @@ export function getConversationForUser(
 export function listMessages(conversationId: number): MessageRow[] {
   return db
     .prepare(
-      'SELECT id, sender_user_id, body, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC, id ASC',
+      'SELECT id, sender_user_id, body, image_path, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC, id ASC',
     )
     .all(conversationId) as MessageRow[];
 }
 
-export function insertMessage(conversationId: number, senderUserId: number, body: string): void {
+export function insertMessage(
+  conversationId: number,
+  senderUserId: number,
+  body: string,
+  imagePath: string | null = null,
+): void {
   const tx = db.transaction(() => {
     db.prepare(
-      'INSERT INTO messages (conversation_id, sender_user_id, body) VALUES (?, ?, ?)',
-    ).run(conversationId, senderUserId, body);
+      'INSERT INTO messages (conversation_id, sender_user_id, body, image_path) VALUES (?, ?, ?, ?)',
+    ).run(conversationId, senderUserId, body, imagePath);
     db.prepare("UPDATE conversations SET updated_at = datetime('now') WHERE id = ?").run(
       conversationId,
     );
