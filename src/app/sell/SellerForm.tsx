@@ -3,13 +3,9 @@
 import { useActionState } from 'react';
 import { becomeSeller, type SellerState } from '@/app/actions/seller';
 
-interface Props {
-  categories: { id: string; name: string }[];
-}
-
 const LOCATIONS = ['Улаанбаатар', 'Дархан', 'Эрдэнэт', 'Бусад'];
 
-export default function SellerForm({ categories }: Props) {
+export default function SellerForm() {
   const [state, action, pending] = useActionState<SellerState, FormData>(becomeSeller, undefined);
   const errors = state?.errors;
 
@@ -70,18 +66,6 @@ export default function SellerForm({ categories }: Props) {
           {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
         </select>
         {errors?.location?.[0] && <p className="text-xs text-red-600 mt-1">{errors.location[0]}</p>}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Бүтээгдэхүүний төрөл</label>
-        <select
-          name="category"
-          defaultValue={categories[0]?.id}
-          className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary bg-surface"
-        >
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        {errors?.category?.[0] && <p className="text-xs text-red-600 mt-1">{errors.category[0]}</p>}
       </div>
 
       <div>

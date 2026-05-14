@@ -41,7 +41,7 @@ export default async function SellerDashboard() {
           <div>
             <h1 className="text-2xl font-bold">{seller.store_name}</h1>
             <p className="text-sm text-muted mt-1">
-              📍 {seller.location} · 📞 {seller.phone} · 🏷️ {categoryName(seller.category)}
+              📍 {seller.location} · 📞 {seller.phone}
             </p>
             {seller.description && (
               <p className="text-sm text-muted mt-2 max-w-2xl">{seller.description}</p>

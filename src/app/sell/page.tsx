@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
-import { categories } from '@/lib/data';
 import SellerForm from './SellerForm';
 
 export default async function SellPage() {
@@ -82,7 +81,7 @@ export default async function SellPage() {
       <section id="register" className="max-w-2xl mx-auto px-4 py-16">
         <h2 className="text-2xl font-bold text-center mb-8">Борлуулагчийн бүртгэл</h2>
         {user ? (
-          <SellerForm categories={categories.map(c => ({ id: c.id, name: c.name }))} />
+          <SellerForm />
         ) : (
           <div className="bg-surface border border-border rounded-xl p-8 text-center">
             <p className="text-muted mb-4">Борлуулагч болохын тулд эхлээд нэвтэрнэ үү.</p>

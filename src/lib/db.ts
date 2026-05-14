@@ -32,7 +32,6 @@ if (!global.__sqliteDb) {
       store_name TEXT NOT NULL,
       phone TEXT NOT NULL,
       location TEXT NOT NULL,
-      category TEXT NOT NULL,
       description TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -57,5 +56,11 @@ if (!global.__sqliteDb) {
     CREATE INDEX IF NOT EXISTS idx_products_seller ON products(seller_id);
     CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id);
   `);
+
+  const sellerCols = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;
+  if (sellerCols.some(c => c.name === 'category')) {
+    db.exec('ALTER TABLE sellers DROP COLUMN category');
+  }
+
   global.__sqliteDb = db;
 }

@@ -68,7 +68,6 @@ export interface SellerRow {
   store_name: string;
   phone: string;
   location: string;
-  category: string;
   description: string | null;
   created_at: string;
 }

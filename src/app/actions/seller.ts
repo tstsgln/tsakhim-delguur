@@ -16,7 +16,6 @@ const SellerSchema = z.object({
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   location: z.string().trim().min(1, 'Байршил шаардлагатай'),
-  category: z.string().trim().min(1, 'Ангилал шаардлагатай'),
   description: z.string().trim().optional(),
   agreed: z.literal('on', { error: 'Үйлчилгээний нөхцөлийг зөвшөөрөх шаардлагатай' }),
 });
@@ -40,7 +39,6 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
     storeName: formData.get('storeName'),
     phone: formData.get('phone'),
     location: formData.get('location'),
-    category: formData.get('category'),
     description: formData.get('description') ?? '',
     agreed: formData.get('agreed'),
   });
@@ -56,14 +54,13 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
   }
 
   db.prepare(
-    `INSERT INTO sellers (user_id, store_name, phone, location, category, description)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sellers (user_id, store_name, phone, location, description)
+     VALUES (?, ?, ?, ?, ?)`,
   ).run(
     user.id,
     data.storeName,
     data.phone,
     data.location,
-    data.category,
     data.description || null,
   );
 
@@ -86,6 +83,14 @@ export type ProductState =
   | undefined;
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+const EXT_TO_MIME: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export async function createProduct(_state: ProductState, formData: FormData): Promise<ProductState> {
@@ -116,7 +121,10 @@ export async function createProduct(_state: ProductState, formData: FormData): P
   }
 
   for (const f of files) {
-    if (!ALLOWED_IMAGE_TYPES.has(f.type)) {
+    const ext = path.extname(f.name).toLowerCase();
+    const typeOk = f.type && ALLOWED_IMAGE_TYPES.has(f.type);
+    const extOk = ALLOWED_IMAGE_EXTS.has(ext);
+    if (!typeOk && !extOk) {
       return { errors: { images: [`Зургийн төрөл буруу: ${f.name}`] } };
     }
     if (f.size > MAX_IMAGE_BYTES) {
@@ -129,7 +137,10 @@ export async function createProduct(_state: ProductState, formData: FormData): P
 
   const savedPaths: string[] = [];
   for (const f of files) {
-    const ext = path.extname(f.name).toLowerCase() || '.jpg';
+    let ext = path.extname(f.name).toLowerCase();
+    if (!ALLOWED_IMAGE_EXTS.has(ext)) {
+      ext = Object.entries(EXT_TO_MIME).find(([, m]) => m === f.type)?.[0] ?? '.jpg';
+    }
     const filename = `${crypto.randomUUID()}${ext}`;
     const fullPath = path.join(uploadsDir, filename);
     const bytes = Buffer.from(await f.arrayBuffer());
