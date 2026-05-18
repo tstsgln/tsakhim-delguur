@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import UnverifiedBanner from "@/components/UnverifiedBanner";
 import { CartProvider } from "@/lib/cart-context";
 import { getSessionUser } from "@/lib/session";
 import { db } from "@/lib/db";
@@ -29,6 +30,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <CartProvider>
           <Header user={user} isSeller={isSeller} unreadCount={unreadCount} isAdmin={userIsAdmin} />
+          {user && !user.emailVerified && <UnverifiedBanner email={user.email} />}
           <main className="flex-1">{children}</main>
           <Footer />
         </CartProvider>

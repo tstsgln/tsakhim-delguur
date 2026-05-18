@@ -60,6 +60,7 @@ export interface SessionUser {
   id: number;
   name: string;
   email: string;
+  emailVerified: boolean;
 }
 
 export interface SellerRow {

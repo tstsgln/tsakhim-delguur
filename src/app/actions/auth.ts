@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { createSession, deleteSession } from '@/lib/session';
+import { generateVerificationToken } from '@/lib/verify-token';
+import { sendEmail, buildVerificationEmail, getAppBaseUrl } from '@/lib/email';
 
 const SignupSchema = z.object({
   name: z.string().trim().min(2, 'Нэр доод тал нь 2 тэмдэгт байна'),
@@ -34,6 +36,7 @@ interface UserRow {
   name: string;
   email: string;
   password_hash: string;
+  email_verified_at: string | null;
 }
 
 export async function signup(_state: AuthState, formData: FormData): Promise<AuthState> {
@@ -64,14 +67,23 @@ export async function signup(_state: AuthState, formData: FormData): Promise<Aut
   const result = db
     .prepare('INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)')
     .run(name, email, passwordHash);
+  const userId = Number(result.lastInsertRowid);
 
-  await createSession({
-    id: Number(result.lastInsertRowid),
-    name,
-    email,
-  });
+  const { token, tokenHash, expiresAt } = generateVerificationToken();
+  db.prepare(
+    'INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+  ).run(userId, tokenHash, expiresAt);
 
-  redirect('/');
+  const verifyUrl = `${getAppBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
+  const { subject, html, text } = buildVerificationEmail(name, verifyUrl);
+  try {
+    await sendEmail({ to: email, subject, html, text });
+  } catch (err) {
+    console.error('Verification email failed to send:', err);
+    return { message: 'Имэйл явуулахад алдаа гарлаа. Дахин оролдоно уу.' };
+  }
+
+  redirect(`/signup/check-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function login(_state: AuthState, formData: FormData): Promise<AuthState> {
@@ -86,14 +98,19 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
 
   const { email, password } = parsed.data;
   const user = db
-    .prepare('SELECT id, name, email, password_hash FROM users WHERE email = ?')
+    .prepare('SELECT id, name, email, password_hash, email_verified_at FROM users WHERE email = ?')
     .get(email) as UserRow | undefined;
 
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return { message: 'Имэйл эсвэл нууц үг буруу байна' };
   }
 
-  await createSession({ id: user.id, name: user.name, email: user.email });
+  await createSession({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    emailVerified: user.email_verified_at !== null,
+  });
   redirect('/');
 }
 

@@ -80,9 +80,7 @@ export default async function SellPage() {
       {/* Seller form */}
       <section id="register" className="max-w-2xl mx-auto px-4 py-16">
         <h2 className="text-2xl font-bold text-center mb-8">Борлуулагчийн бүртгэл</h2>
-        {user ? (
-          <SellerForm />
-        ) : (
+        {!user ? (
           <div className="bg-surface border border-border rounded-xl p-8 text-center">
             <p className="text-muted mb-4">Борлуулагч болохын тулд эхлээд нэвтэрнэ үү.</p>
             <Link
@@ -92,6 +90,18 @@ export default async function SellPage() {
               Нэвтрэх
             </Link>
           </div>
+        ) : !user.emailVerified ? (
+          <div className="bg-surface border border-border rounded-xl p-8 text-center">
+            <p className="text-muted mb-4">Борлуулагч болохын тулд эхлээд имэйл хаягаа баталгаажуулна уу.</p>
+            <Link
+              href={`/signup/check-email?email=${encodeURIComponent(user.email)}`}
+              className="inline-block bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
+            >
+              Имэйлээ баталгаажуулах
+            </Link>
+          </div>
+        ) : (
+          <SellerForm />
         )}
       </section>
     </div>

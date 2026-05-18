@@ -51,7 +51,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
   const payload = await decrypt(token);
-  return payload?.user ?? null;
+  if (!payload?.user) return null;
+  // Grandfather sessions issued before email_verified was tracked: treat as verified.
+  const user = payload.user;
+  if (typeof user.emailVerified !== 'boolean') {
+    return { ...user, emailVerified: true };
+  }
+  return user;
 }
 
 export async function deleteSession() {

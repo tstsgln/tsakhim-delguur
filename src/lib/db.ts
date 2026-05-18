@@ -20,7 +20,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -29,8 +29,19 @@ if (currentVersion < SCHEMA_VERSION) {
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      email_verified_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_evt_user ON email_verification_tokens(user_id);
 
     CREATE TABLE IF NOT EXISTS sellers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +111,12 @@ if (currentVersion < SCHEMA_VERSION) {
   const sellerCols = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;
   if (sellerCols.some(c => c.name === 'category')) {
     db.exec('ALTER TABLE sellers DROP COLUMN category');
+  }
+
+  const userCols = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+  if (userCols.length > 0 && !userCols.some(c => c.name === 'email_verified_at')) {
+    db.exec("ALTER TABLE users ADD COLUMN email_verified_at TEXT");
+    db.exec("UPDATE users SET email_verified_at = COALESCE(created_at, datetime('now')) WHERE email_verified_at IS NULL");
   }
 
   const messageCols = db.prepare("PRAGMA table_info(messages)").all() as Array<{ name: string }>;

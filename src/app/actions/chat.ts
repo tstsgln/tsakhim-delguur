@@ -24,6 +24,7 @@ export async function startConversationWithSeller(formData: FormData): Promise<v
 
   const user = await getSessionUser();
   if (!user) redirect('/login');
+  if (!user.emailVerified) redirect('/signup/check-email?email=' + encodeURIComponent(user.email));
 
   const seller = db
     .prepare('SELECT id, user_id FROM sellers WHERE id = ?')
@@ -51,6 +52,7 @@ export async function sendMessage(
 ): Promise<SendMessageState> {
   const user = await getSessionUser();
   if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
+  if (!user.emailVerified) return { message: 'Эхлээд имэйл хаягаа баталгаажуулна уу' };
 
   const convo = getConversationForUser(conversationId, user.id);
   if (!convo) return { message: 'Зурвасын хэрэглэгч олдсонгүй' };

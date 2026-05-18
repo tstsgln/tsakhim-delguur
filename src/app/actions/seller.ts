@@ -32,6 +32,9 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
   if (!user) {
     return { message: 'Эхлээд нэвтэрнэ үү' };
   }
+  if (!user.emailVerified) {
+    return { message: 'Эхлээд имэйл хаягаа баталгаажуулна уу' };
+  }
 
   const parsed = SellerSchema.safeParse({
     lastName: formData.get('lastName'),
@@ -138,6 +141,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export async function createProduct(_state: ProductState, formData: FormData): Promise<ProductState> {
   const user = await getSessionUser();
   if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
+  if (!user.emailVerified) return { message: 'Эхлээд имэйл хаягаа баталгаажуулна уу' };
 
   const seller = db
     .prepare('SELECT id FROM sellers WHERE user_id = ?')
