@@ -2,9 +2,11 @@
 
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { createSession, deleteSession } from '@/lib/session';
+import { createSession, deleteSession, getSessionUser } from '@/lib/session';
 import { generateVerificationToken } from '@/lib/verify-token';
 import { sendEmail, buildVerificationEmail, getAppBaseUrl } from '@/lib/email';
 
@@ -115,6 +117,76 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
 }
 
 export async function logout() {
+  await deleteSession();
+  redirect('/');
+}
+
+const DeleteAccountSchema = z.object({
+  password: z.string().min(1, 'Нууц үг шаардлагатай'),
+});
+
+export type DeleteAccountState =
+  | {
+      errors?: { password?: string[] };
+      message?: string;
+    }
+  | undefined;
+
+export async function deleteAccount(
+  _state: DeleteAccountState,
+  formData: FormData,
+): Promise<DeleteAccountState> {
+  const sessionUser = await getSessionUser();
+  if (!sessionUser) {
+    redirect('/login');
+  }
+
+  const parsed = DeleteAccountSchema.safeParse({
+    password: formData.get('password'),
+  });
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const user = db
+    .prepare('SELECT id, password_hash FROM users WHERE id = ?')
+    .get(sessionUser.id) as { id: number; password_hash: string } | undefined;
+  if (!user) {
+    await deleteSession();
+    redirect('/');
+  }
+
+  const ok = await bcrypt.compare(parsed.data.password, user.password_hash);
+  if (!ok) {
+    return { errors: { password: ['Нууц үг буруу байна'] } };
+  }
+
+  const productImages = db
+    .prepare(
+      `SELECT pi.path AS p FROM product_images pi
+       JOIN products pr ON pr.id = pi.product_id
+       JOIN sellers s ON s.id = pr.seller_id
+       WHERE s.user_id = ?`,
+    )
+    .all(user.id) as Array<{ p: string }>;
+  const chatImages = db
+    .prepare(
+      `SELECT image_path AS p FROM messages WHERE sender_user_id = ? AND image_path IS NOT NULL`,
+    )
+    .all(user.id) as Array<{ p: string }>;
+
+  db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+
+  const publicDir = path.join(process.cwd(), 'public');
+  for (const { p } of [...productImages, ...chatImages]) {
+    if (!p.startsWith('/uploads/')) continue;
+    try {
+      await fs.unlink(path.join(publicDir, p));
+    } catch {
+      // best-effort cleanup
+    }
+  }
+
   await deleteSession();
   redirect('/');
 }

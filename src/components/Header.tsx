@@ -167,8 +167,8 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
                         <span>🏪</span> Борлуулагч болох
                       </Link>
                     )}
-                    <Link href="/settings" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
-                      <span>⚙️</span> Бүртгэлийн тохиргоо
+                    <Link href="/settings/delete" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
+                      <span>🗑️</span> Бүртгэлээ устгах
                     </Link>
                     <Link href="/help" onClick={() => setUserDropdown(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-primary-light/20">
                       <span>❓</span> Тусламжийн төв
