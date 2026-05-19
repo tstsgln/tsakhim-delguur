@@ -46,6 +46,23 @@ export default async function SellerDashboard() {
         }}
       />
 
+      <div className="flex flex-wrap gap-3 mb-6">
+        <Link
+          href="/seller/orders"
+          className="flex-1 min-w-[180px] bg-surface border border-border rounded-xl p-4 hover:border-primary transition-colors"
+        >
+          <p className="text-sm text-muted mb-1">📦 Захиалга</p>
+          <p className="font-semibold">Ирсэн захиалгууд</p>
+        </Link>
+        <Link
+          href="/balance"
+          className="flex-1 min-w-[180px] bg-surface border border-border rounded-xl p-4 hover:border-primary transition-colors"
+        >
+          <p className="text-sm text-muted mb-1">💳 Орлого</p>
+          <p className="font-semibold">Дансны үлдэгдэл</p>
+        </Link>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Миний бүтээгдэхүүнүүд</h2>
         <span className="text-sm text-muted">{products.length} бүтээгдэхүүн</span>

@@ -20,7 +20,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -106,6 +106,80 @@ if (currentVersion < SCHEMA_VERSION) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_feedback_status_created ON feedback(status, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      buyer_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      seller_id INTEGER NOT NULL REFERENCES sellers(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending_payment',
+      subtotal INTEGER NOT NULL,
+      commission_rate INTEGER NOT NULL,
+      commission_amount INTEGER NOT NULL,
+      seller_amount INTEGER NOT NULL,
+      payment_method TEXT NOT NULL DEFAULT 'mock',
+      payment_ref TEXT,
+      buyer_phone TEXT NOT NULL,
+      shipping_address TEXT NOT NULL,
+      buyer_note TEXT,
+      paid_at TEXT,
+      shipped_at TEXT,
+      completed_at TEXT,
+      cancelled_at TEXT,
+      refunded_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+      product_name TEXT NOT NULL,
+      product_image_path TEXT,
+      unit_price INTEGER NOT NULL,
+      quantity INTEGER NOT NULL,
+      line_total INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+
+    CREATE TABLE IF NOT EXISTS balances (
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      account TEXT NOT NULL,
+      amount INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, account)
+    );
+
+    CREATE TABLE IF NOT EXISTS ledger (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      account TEXT NOT NULL,
+      delta INTEGER NOT NULL,
+      kind TEXT NOT NULL,
+      order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+      payout_id INTEGER,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ledger_order ON ledger(order_id);
+
+    CREATE TABLE IF NOT EXISTS payouts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'requested',
+      bank_name TEXT NOT NULL,
+      account_number TEXT NOT NULL,
+      account_holder TEXT NOT NULL,
+      admin_note TEXT,
+      requested_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_payouts_user ON payouts(user_id, requested_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_payouts_status ON payouts(status, requested_at DESC);
   `);
 
   const sellerCols = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;

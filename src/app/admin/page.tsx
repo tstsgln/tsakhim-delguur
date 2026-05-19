@@ -2,43 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/session';
 import { isAdmin } from '@/lib/admin';
-import { listFeedback, countFeedbackByStatus, type FeedbackStatus } from '@/lib/feedback-db';
-import { updateFeedbackStatus } from '@/app/actions/feedback';
+import { db } from '@/lib/db';
+import { countFeedbackByStatus } from '@/lib/feedback-db';
+import { getPlatformCommissionBalance, autoReleaseStaleOrders } from '@/lib/orders-db';
+import { formatPrice } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
-interface PageProps {
-  searchParams: Promise<{ status?: string }>;
-}
-
-function statusLabel(s: FeedbackStatus): string {
-  return s === 'new' ? 'Шинэ' : s === 'read' ? 'Уншсан' : 'Шийдвэрлэсэн';
-}
-
-function statusColor(s: FeedbackStatus): string {
-  return s === 'new'
-    ? 'bg-primary text-white'
-    : s === 'read'
-      ? 'bg-warning/20 text-warning'
-      : 'bg-success/20 text-success';
-}
-
-function kindLabel(k: string): string {
-  return k === 'complaint' ? '⚠️ Гомдол' : '💡 Санал';
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso + 'Z');
-  return d.toLocaleString('mn-MN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-export default async function AdminPage({ searchParams }: PageProps) {
+export default async function AdminHubPage() {
   const user = await getSessionUser();
   if (!user) redirect('/login');
   if (!isAdmin(user)) {
@@ -46,7 +17,6 @@ export default async function AdminPage({ searchParams }: PageProps) {
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <p className="text-4xl mb-4">🚫</p>
         <h1 className="text-2xl font-bold mb-2">Хандах эрх алга</h1>
-        <p className="text-muted">Энэ хуудас зөвхөн админд зориулагдсан.</p>
         <Link href="/" className="text-primary hover:underline text-sm mt-4 inline-block">
           ← Нүүр хуудас
         </Link>
@@ -54,118 +24,82 @@ export default async function AdminPage({ searchParams }: PageProps) {
     );
   }
 
-  const sp = await searchParams;
-  const validStatuses = ['new', 'read', 'resolved', 'all'] as const;
-  type FilterValue = (typeof validStatuses)[number];
-  const filter: FilterValue = (validStatuses as readonly string[]).includes(sp.status ?? '')
-    ? (sp.status as FilterValue)
-    : 'all';
-  const items = listFeedback(filter);
-  const counts = countFeedbackByStatus();
-  const total = counts.new + counts.read + counts.resolved;
+  autoReleaseStaleOrders();
+
+  const pendingOrdersCount = (
+    db.prepare(`SELECT COUNT(*) AS c FROM orders WHERE status = 'pending_payment'`).get() as { c: number }
+  ).c;
+  const pendingPayoutsCount = (
+    db.prepare(`SELECT COUNT(*) AS c FROM payouts WHERE status = 'requested'`).get() as { c: number }
+  ).c;
+  const feedbackCounts = countFeedbackByStatus();
+  const totalCommission = getPlatformCommissionBalance();
+  const totalCompletedOrders = (
+    db.prepare(`SELECT COUNT(*) AS c FROM orders WHERE status = 'completed'`).get() as { c: number }
+  ).c;
+
+  const tiles = [
+    {
+      href: '/admin/orders',
+      icon: '💳',
+      title: 'Төлбөр баталгаажуулах',
+      desc: 'Худалдан авагч төлбөр илгээсэн захиалгуудыг шалгаад баталгаажуулна',
+      badge: pendingOrdersCount > 0 ? `${pendingOrdersCount} хүлээгдэж буй` : null,
+      badgeColor: 'bg-warning/20 text-warning',
+    },
+    {
+      href: '/admin/payouts',
+      icon: '🏦',
+      title: 'Татан авах хүсэлт',
+      desc: 'Борлуулагчдын татан авах хүсэлтийг шилжүүлсний дараа дуусгана',
+      badge: pendingPayoutsCount > 0 ? `${pendingPayoutsCount} хүлээгдэж буй` : null,
+      badgeColor: 'bg-warning/20 text-warning',
+    },
+    {
+      href: '/admin/feedback',
+      icon: '💌',
+      title: 'Санал, гомдол',
+      desc: 'Хэрэглэгчдийн санал, гомдол',
+      badge: feedbackCounts.new > 0 ? `${feedbackCounts.new} шинэ` : null,
+      badgeColor: 'bg-primary/20 text-primary',
+    },
+  ];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">🛠️ Админ — Санал, гомдол</h1>
-        <p className="text-sm text-muted mt-1">{total} нийт мэдэгдэл</p>
+      <h1 className="text-2xl font-bold mb-6">🛠️ Админ</h1>
+
+      <div className="grid sm:grid-cols-2 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-2xl p-5">
+          <p className="text-sm opacity-90">Нийт цуглуулсан шимтгэл</p>
+          <p className="text-3xl font-bold mt-1">{formatPrice(totalCommission)}</p>
+        </div>
+        <div className="bg-surface border border-border rounded-2xl p-5">
+          <p className="text-sm text-muted">Дууссан захиалга</p>
+          <p className="text-3xl font-bold mt-1">{totalCompletedOrders}</p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        {([
-          { v: 'all', label: `Бүгд (${total})` },
-          { v: 'new', label: `Шинэ (${counts.new})` },
-          { v: 'read', label: `Уншсан (${counts.read})` },
-          { v: 'resolved', label: `Шийдвэрлэсэн (${counts.resolved})` },
-        ] as const).map(t => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {tiles.map(t => (
           <Link
-            key={t.v}
-            href={t.v === 'all' ? '/admin' : `/admin?status=${t.v}`}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filter === t.v
-                ? 'bg-primary text-white'
-                : 'bg-surface border border-border hover:bg-primary-light/10'
-            }`}
+            key={t.href}
+            href={t.href}
+            className="bg-surface border border-border rounded-2xl p-5 hover:border-primary transition-colors"
           >
-            {t.label}
+            <div className="text-3xl mb-2">{t.icon}</div>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="font-bold">{t.title}</p>
+              {t.badge && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.badgeColor}`}>
+                  {t.badge}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted">{t.desc}</p>
           </Link>
         ))}
       </div>
-
-      {items.length === 0 ? (
-        <div className="bg-surface border border-border border-dashed rounded-xl p-12 text-center">
-          <p className="text-4xl mb-3">📭</p>
-          <p className="text-muted">Энэ ангилалд одоогоор мэдэгдэл алга.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {items.map(item => (
-            <div key={item.id} className="bg-surface border border-border rounded-xl p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor(item.status)}`}>
-                    {statusLabel(item.status)}
-                  </span>
-                  <span className="text-xs bg-primary-light/30 text-primary px-2 py-1 rounded-full">
-                    {kindLabel(item.kind)}
-                  </span>
-                  {item.is_seller === 1 ? (
-                    <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
-                      🏪 Дэлгүүр: {item.store_name}
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-muted/20 text-muted px-2 py-1 rounded-full">
-                      👤 Худалдан авагч
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-muted">{formatDate(item.created_at)}</span>
-              </div>
-
-              {item.subject && (
-                <h3 className="font-bold mb-1">{item.subject}</h3>
-              )}
-              <p className="text-sm whitespace-pre-wrap break-words mb-3">{item.body}</p>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border">
-                <div className="text-xs text-muted">
-                  <span className="font-medium text-foreground">{item.user_name}</span>{' '}
-                  <a href={`mailto:${item.user_email}`} className="hover:text-primary">{item.user_email}</a>
-                </div>
-                <div className="flex gap-2">
-                  {item.status !== 'read' && item.status !== 'resolved' && (
-                    <form action={updateFeedbackStatus}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <input type="hidden" name="status" value="read" />
-                      <button className="text-xs bg-surface border border-border px-3 py-1.5 rounded-md hover:bg-primary-light/20">
-                        Уншсан гэж тэмдэглэх
-                      </button>
-                    </form>
-                  )}
-                  {item.status !== 'resolved' && (
-                    <form action={updateFeedbackStatus}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <input type="hidden" name="status" value="resolved" />
-                      <button className="text-xs bg-success text-white px-3 py-1.5 rounded-md hover:opacity-90">
-                        Шийдвэрлэсэн
-                      </button>
-                    </form>
-                  )}
-                  {item.status === 'resolved' && (
-                    <form action={updateFeedbackStatus}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <input type="hidden" name="status" value="new" />
-                      <button className="text-xs text-muted hover:text-primary">
-                        Шинэ болгох
-                      </button>
-                    </form>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

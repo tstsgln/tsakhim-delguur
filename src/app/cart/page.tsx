@@ -103,9 +103,12 @@ export default function CartPage() {
               </div>
             </div>
 
-            <button className="w-full bg-primary text-white py-3 rounded-lg font-semibold mt-6 hover:bg-primary-dark transition-colors active:scale-95">
+            <Link
+              href="/cart/checkout"
+              className="block text-center w-full bg-primary text-white py-3 rounded-lg font-semibold mt-6 hover:bg-primary-dark transition-colors active:scale-95"
+            >
               Захиалга өгөх
-            </button>
+            </Link>
 
             <Link href="/products" className="block text-center text-sm text-primary mt-3 hover:underline">
               ← Дэлгүүр үргэлжлүүлэх
