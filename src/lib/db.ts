@@ -20,7 +20,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -199,6 +199,15 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (messageCols.length > 0 && !messageCols.some(c => c.name === 'image_path')) {
     db.exec('ALTER TABLE messages ADD COLUMN image_path TEXT');
+  }
+
+  const productCols = db.prepare("PRAGMA table_info(products)").all() as Array<{ name: string }>;
+  if (productCols.length > 0 && !productCols.some(c => c.name === 'stock_quantity')) {
+    db.exec('ALTER TABLE products ADD COLUMN stock_quantity INTEGER NOT NULL DEFAULT 0');
+    db.exec('UPDATE products SET stock_quantity = 10 WHERE stock_quantity = 0');
+  }
+  if (productCols.length > 0 && !productCols.some(c => c.name === 'accept_custom_orders')) {
+    db.exec('ALTER TABLE products ADD COLUMN accept_custom_orders INTEGER NOT NULL DEFAULT 0');
   }
 
   db.pragma(`user_version = ${SCHEMA_VERSION}`);

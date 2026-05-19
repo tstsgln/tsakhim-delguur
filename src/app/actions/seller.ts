@@ -118,6 +118,8 @@ const ProductSchema = z.object({
   description: z.string().trim().min(10, 'Тайлбар доод тал нь 10 тэмдэгт'),
   price: z.coerce.number().int().positive('Үнэ зөв байх ёстой'),
   category: z.string().trim().min(1, 'Ангилал шаардлагатай'),
+  stockQuantity: z.coerce.number().int().min(0, 'Үлдэгдэл сөрөг байж болохгүй'),
+  acceptCustomOrders: z.preprocess(v => v === 'on', z.boolean()),
 });
 
 export type ProductState =
@@ -138,6 +140,41 @@ const EXT_TO_MIME: Record<string, string> = {
 };
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
+export async function updateProductInventory(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user) return;
+
+  const productId = Number(formData.get('productId'));
+  if (!Number.isInteger(productId) || productId <= 0) return;
+
+  const seller = db
+    .prepare('SELECT id FROM sellers WHERE user_id = ?')
+    .get(user.id) as { id: number } | undefined;
+  if (!seller) return;
+
+  const owned = db
+    .prepare('SELECT 1 FROM products WHERE id = ? AND seller_id = ?')
+    .get(productId, seller.id);
+  if (!owned) return;
+
+  const stockRaw = formData.get('stockQuantity');
+  const acceptRaw = formData.get('acceptCustomOrders');
+
+  if (stockRaw !== null) {
+    const stock = Number(stockRaw);
+    if (Number.isInteger(stock) && stock >= 0) {
+      db.prepare('UPDATE products SET stock_quantity = ? WHERE id = ?').run(stock, productId);
+    }
+  }
+  if (acceptRaw !== null) {
+    const accept = acceptRaw === 'on' ? 1 : 0;
+    db.prepare('UPDATE products SET accept_custom_orders = ? WHERE id = ?').run(accept, productId);
+  }
+
+  revalidatePath('/seller/dashboard');
+  revalidatePath(`/product/${productId}`);
+}
+
 export async function createProduct(_state: ProductState, formData: FormData): Promise<ProductState> {
   const user = await getSessionUser();
   if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
@@ -153,6 +190,8 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     description: formData.get('description'),
     price: formData.get('price'),
     category: formData.get('category'),
+    stockQuantity: formData.get('stockQuantity'),
+    acceptCustomOrders: formData.get('acceptCustomOrders'),
   });
 
   if (!parsed.success) {
@@ -195,8 +234,8 @@ export async function createProduct(_state: ProductState, formData: FormData): P
   }
 
   const insertProduct = db.prepare(
-    `INSERT INTO products (seller_id, name, description, price, category)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO products (seller_id, name, description, price, category, stock_quantity, accept_custom_orders)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
   const insertImage = db.prepare(
     'INSERT INTO product_images (product_id, path, position) VALUES (?, ?, ?)',
@@ -209,6 +248,8 @@ export async function createProduct(_state: ProductState, formData: FormData): P
       productData.description,
       productData.price,
       productData.category,
+      productData.stockQuantity,
+      productData.acceptCustomOrders ? 1 : 0,
     );
     const productId = Number(result.lastInsertRowid);
     imagePaths.forEach((p, i) => insertImage.run(productId, p, i));

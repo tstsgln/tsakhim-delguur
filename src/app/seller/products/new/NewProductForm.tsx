@@ -70,6 +70,36 @@ export default function NewProductForm({ categories }: Props) {
       </div>
 
       <div>
+        <label className="block text-sm font-medium mb-1">Үлдэгдэл (ширхэг)</label>
+        <input
+          name="stockQuantity"
+          type="number"
+          min={0}
+          step={1}
+          defaultValue={1}
+          className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
+        />
+        <p className="text-xs text-muted mt-1">Бэлэн байгаа барааны тоо. Дууссан үед худалдан авагч сагсанд нэмэх боломжгүй.</p>
+        {errors?.stockQuantity?.[0] && <p className="text-xs text-red-600 mt-1">{errors.stockQuantity[0]}</p>}
+      </div>
+
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          name="acceptCustomOrders"
+          type="checkbox"
+          value="on"
+          className="mt-0.5 accent-primary w-4 h-4"
+        />
+        <span className="text-sm">
+          <span className="font-medium">Дууссан үед нэмэлт захиалга авна</span>
+          <span className="block text-xs text-muted mt-0.5">
+            Үлдэгдэл 0 болсон үед худалдан авагч таныг шууд захиалга өгөх боломжтой
+            (зурвасаар тохиролцоно).
+          </span>
+        </span>
+      </label>
+
+      <div>
         <label className="block text-sm font-medium mb-1">Зургууд</label>
         <input
           name="images"

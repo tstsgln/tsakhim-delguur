@@ -12,11 +12,14 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const { addToCart, items } = useCart();
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
   const cover = product.images?.[0];
+  const inCartQty = items.find(it => it.product.id === product.id)?.quantity ?? 0;
+  const soldOut = product.stockQuantity <= 0;
+  const canAddMore = product.stockQuantity - inCartQty > 0;
 
   return (
     <div className="group bg-surface rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
@@ -47,6 +50,13 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className="absolute bottom-2 left-2 bg-success text-white text-xs px-2 py-1 rounded-full z-10">
               🚚 Үнэгүй хүргэлт
             </span>
+          )}
+          {soldOut && (
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+              <span className="bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full">
+                Дууссан
+              </span>
+            </div>
           )}
         </div>
       </Link>
@@ -82,12 +92,31 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Add to cart */}
-        <button
-          onClick={() => addToCart(product)}
-          className="w-full mt-3 bg-primary text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors active:scale-95"
-        >
-          🛒 Сагсанд нэмэх
-        </button>
+        {soldOut ? (
+          product.acceptCustomOrders ? (
+            <Link
+              href={`/product/${product.id}`}
+              className="block text-center w-full mt-3 bg-accent text-white py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              📝 Захиалга өгөх
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="w-full mt-3 bg-surface border border-border text-muted py-2 rounded-lg text-sm font-medium cursor-not-allowed"
+            >
+              Дууссан
+            </button>
+          )
+        ) : (
+          <button
+            onClick={() => addToCart(product)}
+            disabled={!canAddMore}
+            className="w-full mt-3 bg-primary text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            🛒 {canAddMore ? 'Сагсанд нэмэх' : 'Сагсанд бүгдийг нэмсэн'}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -58,6 +58,7 @@ interface ProductSnapshot {
   name: string;
   price: number;
   image_path: string | null;
+  stock_quantity: number;
 }
 
 function commissionFor(subtotal: number, rateBps = COMMISSION_RATE_BPS): number {
@@ -69,7 +70,7 @@ function fetchProductSnapshots(productIds: number[]): Map<number, ProductSnapsho
   const placeholders = productIds.map(() => '?').join(',');
   const rows = db
     .prepare(
-      `SELECT p.id, p.seller_id, p.name, p.price,
+      `SELECT p.id, p.seller_id, p.name, p.price, p.stock_quantity,
               (SELECT path FROM product_images WHERE product_id = p.id ORDER BY position ASC LIMIT 1) AS image_path
        FROM products p
        WHERE p.id IN (${placeholders})`,
@@ -124,6 +125,10 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
     ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
+  const decrementStock = db.prepare(
+    'UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?',
+  );
+
   const tx = db.transaction((): CreatedOrderSummary[] => {
     const summaries: CreatedOrderSummary[] = [];
     for (const [sellerId, items] of bySeller) {
@@ -143,6 +148,10 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
       );
       const orderId = Number(result.lastInsertRowid);
       for (const { product, quantity } of items) {
+        const upd = decrementStock.run(quantity, product.id, quantity);
+        if (upd.changes === 0) {
+          throw new Error(`«${product.name}» хүрэлцэхгүй байна`);
+        }
         insertItem.run(
           orderId,
           product.id,
@@ -308,12 +317,26 @@ export function autoReleaseStaleOrders(): number {
   return stale.length;
 }
 
+function restoreStockForOrder(orderId: number) {
+  const items = db
+    .prepare('SELECT product_id, quantity FROM order_items WHERE order_id = ?')
+    .all(orderId) as Array<{ product_id: number | null; quantity: number }>;
+  const restore = db.prepare('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?');
+  for (const it of items) {
+    if (it.product_id != null) restore.run(it.quantity, it.product_id);
+  }
+}
+
 export function cancelByBuyer(orderId: number, buyerUserId: number): { ok: boolean; reason?: string } {
   const order = getOrder(orderId);
   if (!order) return { ok: false, reason: 'Захиалга олдсонгүй' };
   if (order.buyer_user_id !== buyerUserId) return { ok: false, reason: 'Зөвшөөрөлгүй үйлдэл' };
   if (order.status !== 'pending_payment') return { ok: false, reason: 'Цуцлах боломжгүй төлөвт байна' };
-  db.prepare(`UPDATE orders SET status = 'cancelled', cancelled_at = datetime('now') WHERE id = ?`).run(orderId);
+  const tx = db.transaction(() => {
+    db.prepare(`UPDATE orders SET status = 'cancelled', cancelled_at = datetime('now') WHERE id = ?`).run(orderId);
+    restoreStockForOrder(orderId);
+  });
+  tx();
   return { ok: true };
 }
 

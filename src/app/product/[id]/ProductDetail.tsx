@@ -25,11 +25,16 @@ interface Props {
 }
 
 export default function ProductDetail({ product, seller, canMessage }: Props) {
-  const { addToCart } = useCart();
+  const { addToCart, items } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const cover = product.images?.[activeImage];
   const joinedYear = seller.joinedDate ? new Date(seller.joinedDate).getFullYear() : '';
+
+  const inCartQty = items.find(it => it.product.id === product.id)?.quantity ?? 0;
+  const remainingStock = Math.max(0, product.stockQuantity - inCartQty);
+  const soldOut = product.stockQuantity <= 0;
+  const cartWouldExceed = quantity > remainingStock;
 
   return (
     <>
@@ -71,40 +76,92 @@ export default function ProductDetail({ product, seller, canMessage }: Props) {
 
           <p className="text-muted leading-relaxed whitespace-pre-wrap mb-6">{product.description}</p>
 
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-3">
             <span className="text-3xl font-bold text-primary">{formatPrice(product.price)}</span>
           </div>
 
-          <div className="flex items-center gap-4 mb-6">
-            <span className="text-sm font-medium">Тоо:</span>
-            <div className="flex items-center border border-border rounded-lg">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="px-3 py-2 hover:bg-primary-light/20 transition-colors"
-              >
-                -
-              </button>
-              <span className="px-4 py-2 border-x border-border min-w-[3rem] text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="px-3 py-2 hover:bg-primary-light/20 transition-colors"
-              >
-                +
-              </button>
-            </div>
+          <div className="mb-6">
+            {soldOut ? (
+              <span className="inline-block bg-red-100 text-red-700 text-xs font-semibold px-3 py-1 rounded-full">
+                Дууссан
+              </span>
+            ) : (
+              <span className="text-sm text-muted">
+                Үлдэгдэл: <span className="font-semibold text-foreground">{product.stockQuantity} ширхэг</span>
+                {inCartQty > 0 && (
+                  <span className="ml-2 text-xs">(сагсанд {inCartQty} нэмсэн)</span>
+                )}
+              </span>
+            )}
           </div>
 
+          {!soldOut && (
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-sm font-medium">Тоо:</span>
+              <div className="flex items-center border border-border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="px-3 py-2 hover:bg-primary-light/20 transition-colors"
+                >
+                  -
+                </button>
+                <span className="px-4 py-2 border-x border-border min-w-[3rem] text-center">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.min(remainingStock || 1, quantity + 1))}
+                  disabled={quantity >= remainingStock}
+                  className="px-3 py-2 hover:bg-primary-light/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  +
+                </button>
+              </div>
+              {remainingStock <= 5 && remainingStock > 0 && (
+                <span className="text-xs text-warning">Үлдэгдэл бага</span>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-3">
-            <button
-              onClick={() => addToCart(product, quantity)}
-              className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors active:scale-95"
-            >
-              🛒 Сагсанд нэмэх
-            </button>
-            <button className="px-4 py-3 border border-border rounded-lg hover:bg-primary-light/20 transition-colors text-xl">
+            {soldOut ? (
+              product.acceptCustomOrders ? (
+                <form action={startConversationWithSeller} className="flex-1">
+                  <input type="hidden" name="sellerId" value={seller.id} />
+                  <button
+                    type="submit"
+                    className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity active:scale-95"
+                  >
+                    📝 Захиалга өгөх (борлуулагчтай ярилцах)
+                  </button>
+                </form>
+              ) : (
+                <button
+                  disabled
+                  className="flex-1 bg-surface border border-border text-muted py-3 rounded-lg font-semibold cursor-not-allowed"
+                >
+                  Дууссан
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (cartWouldExceed) return;
+                  addToCart(product, quantity);
+                }}
+                disabled={cartWouldExceed || remainingStock <= 0}
+                className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                🛒 Сагсанд нэмэх
+              </button>
+            )}
+            <button type="button" className="px-4 py-3 border border-border rounded-lg hover:bg-primary-light/20 transition-colors text-xl">
               ♡
             </button>
           </div>
+          {cartWouldExceed && !soldOut && (
+            <p className="text-xs text-red-600 mt-2">Үлдэгдэлээс илүү тоо сонгох боломжгүй.</p>
+          )}
         </div>
       </div>
 

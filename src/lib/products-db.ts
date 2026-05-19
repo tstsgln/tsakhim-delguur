@@ -9,6 +9,8 @@ interface JoinedRow {
   price: number;
   category: string;
   created_at: string;
+  stock_quantity: number;
+  accept_custom_orders: number;
   seller_id: number;
   store_name: string;
   seller_location: string;
@@ -40,6 +42,8 @@ const BASE_QUERY = `
     p.price,
     p.category,
     p.created_at,
+    p.stock_quantity,
+    p.accept_custom_orders,
     s.id AS seller_id,
     s.store_name,
     s.location AS seller_location,
@@ -83,6 +87,8 @@ function toProduct(row: JoinedRow): Product {
     tags: [],
     isNew,
     createdAt: row.created_at,
+    stockQuantity: row.stock_quantity,
+    acceptCustomOrders: row.accept_custom_orders === 1,
   };
 }
 
@@ -104,6 +110,8 @@ const DETAIL_QUERY = `
     p.price,
     p.category,
     p.created_at,
+    p.stock_quantity,
+    p.accept_custom_orders,
     s.id AS seller_id,
     s.store_name,
     s.location AS seller_location,

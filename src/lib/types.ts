@@ -15,6 +15,8 @@ export interface Product {
   isNew?: boolean;
   isFreeShipping?: boolean;
   createdAt: string;
+  stockQuantity: number;
+  acceptCustomOrders: boolean;
 }
 
 export interface Seller {
@@ -80,6 +82,8 @@ export interface ProductRow {
   description: string;
   price: number;
   category: string;
+  stock_quantity: number;
+  accept_custom_orders: number;
   created_at: string;
 }
 

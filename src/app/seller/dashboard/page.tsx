@@ -6,6 +6,7 @@ import { getSessionUser } from '@/lib/session';
 import { categories, formatPrice } from '@/lib/data';
 import type { SellerRow, ProductRow } from '@/lib/types';
 import SellerInfoCard from './SellerInfoCard';
+import ProductInventoryRow from './ProductInventoryRow';
 
 interface ProductListItem extends ProductRow {
   cover_image: string | null;
@@ -80,27 +81,36 @@ export default async function SellerDashboard() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="space-y-3">
           {products.map(p => (
-            <div key={p.id} className="bg-surface border border-border rounded-xl overflow-hidden">
-              <div className="aspect-square bg-primary-light/20 relative">
-                {p.cover_image ? (
-                  <Image
-                    src={p.cover_image}
-                    alt={p.name}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">📦</div>
-                )}
+            <div key={p.id} className="bg-surface border border-border rounded-xl p-3 flex flex-col sm:flex-row gap-4">
+              <div className="flex gap-3 flex-1 min-w-0">
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0 relative">
+                  {p.cover_image ? (
+                    <Image
+                      src={p.cover_image}
+                      alt={p.name}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Link href={`/product/${p.id}`} className="font-medium text-sm hover:text-primary truncate block">
+                    {p.name}
+                  </Link>
+                  <p className="text-xs text-muted truncate mb-1">{categoryName(p.category)}</p>
+                  <p className="text-sm font-semibold text-primary">{formatPrice(p.price)}</p>
+                </div>
               </div>
-              <div className="p-3">
-                <p className="font-medium text-sm truncate">{p.name}</p>
-                <p className="text-xs text-muted truncate mb-1">{categoryName(p.category)}</p>
-                <p className="text-sm font-semibold text-primary">{formatPrice(p.price)}</p>
-              </div>
+              <ProductInventoryRow
+                productId={p.id}
+                stockQuantity={p.stock_quantity}
+                acceptCustomOrders={p.accept_custom_orders === 1}
+              />
             </div>
           ))}
         </div>
