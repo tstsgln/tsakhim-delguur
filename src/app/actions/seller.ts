@@ -122,10 +122,24 @@ const ProductSchema = z.object({
   acceptCustomOrders: z.preprocess(v => v === 'on', z.boolean()),
 });
 
+export interface ProductFormValues {
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  stockQuantity: string;
+  acceptCustomOrders: boolean;
+}
+
 export type ProductState =
   | {
       errors?: Partial<Record<keyof z.infer<typeof ProductSchema> | 'images', string[]>>;
       message?: string;
+      values?: ProductFormValues;
+      submitId?: number;
+      success?: boolean;
+      createdProductName?: string;
+      createdProductId?: number;
     }
   | undefined;
 
@@ -176,14 +190,23 @@ export async function updateProductInventory(formData: FormData) {
 }
 
 export async function createProduct(_state: ProductState, formData: FormData): Promise<ProductState> {
+  const submittedValues: ProductFormValues = {
+    name: String(formData.get('name') ?? ''),
+    description: String(formData.get('description') ?? ''),
+    price: String(formData.get('price') ?? ''),
+    category: String(formData.get('category') ?? ''),
+    stockQuantity: String(formData.get('stockQuantity') ?? ''),
+    acceptCustomOrders: formData.get('acceptCustomOrders') === 'on',
+  };
+
   const user = await getSessionUser();
-  if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
-  if (!user.emailVerified) return { message: 'Эхлээд имэйл хаягаа баталгаажуулна уу' };
+  if (!user) return { message: 'Эхлээд нэвтэрнэ үү', values: submittedValues, submitId: Date.now() };
+  if (!user.emailVerified) return { message: 'Эхлээд имэйл хаягаа баталгаажуулна уу', values: submittedValues, submitId: Date.now() };
 
   const seller = db
     .prepare('SELECT id FROM sellers WHERE user_id = ?')
     .get(user.id) as Pick<SellerRow, 'id'> | undefined;
-  if (!seller) return { message: 'Та борлуулагч биш байна' };
+  if (!seller) return { message: 'Та борлуулагч биш байна', values: submittedValues, submitId: Date.now() };
 
   const parsed = ProductSchema.safeParse({
     name: formData.get('name'),
@@ -195,14 +218,14 @@ export async function createProduct(_state: ProductState, formData: FormData): P
   });
 
   if (!parsed.success) {
-    return { errors: z.flattenError(parsed.error).fieldErrors };
+    return { errors: z.flattenError(parsed.error).fieldErrors, values: submittedValues, submitId: Date.now() };
   }
 
   const rawFiles = formData.getAll('images');
   const files = rawFiles.filter((f): f is File => f instanceof File && f.size > 0);
 
   if (files.length === 0) {
-    return { errors: { images: ['Доод тал нь нэг зураг шаардлагатай'] } };
+    return { errors: { images: ['Доод тал нь нэг зураг шаардлагатай'] }, values: submittedValues, submitId: Date.now() };
   }
 
   for (const f of files) {
@@ -210,10 +233,10 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     const typeOk = f.type && ALLOWED_IMAGE_TYPES.has(f.type);
     const extOk = ALLOWED_IMAGE_EXTS.has(ext);
     if (!typeOk && !extOk) {
-      return { errors: { images: [`Зургийн төрөл буруу: ${f.name}`] } };
+      return { errors: { images: [`Зургийн төрөл буруу: ${f.name}`] }, values: submittedValues, submitId: Date.now() };
     }
     if (f.size > MAX_IMAGE_BYTES) {
-      return { errors: { images: [`Зураг ${f.name} 5MB-аас их байна`] } };
+      return { errors: { images: [`Зураг ${f.name} 5MB-аас их байна`] }, values: submittedValues, submitId: Date.now() };
     }
   }
 
@@ -241,6 +264,7 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     'INSERT INTO product_images (product_id, path, position) VALUES (?, ?, ?)',
   );
 
+  let newProductId = 0;
   const tx = db.transaction((productData: typeof parsed.data, imagePaths: string[]) => {
     const result = insertProduct.run(
       seller.id,
@@ -251,13 +275,22 @@ export async function createProduct(_state: ProductState, formData: FormData): P
       productData.stockQuantity,
       productData.acceptCustomOrders ? 1 : 0,
     );
-    const productId = Number(result.lastInsertRowid);
-    imagePaths.forEach((p, i) => insertImage.run(productId, p, i));
-    return productId;
+    newProductId = Number(result.lastInsertRowid);
+    imagePaths.forEach((p, i) => insertImage.run(newProductId, p, i));
   });
-
   tx(parsed.data, savedPaths);
 
+  if (!newProductId) {
+    return { message: 'Хадгалахад алдаа гарлаа', values: submittedValues, submitId: Date.now() };
+  }
+
   revalidatePath('/seller/dashboard');
-  redirect('/seller/dashboard');
+  revalidatePath('/products');
+  revalidatePath(`/product/${newProductId}`);
+  return {
+    success: true,
+    createdProductName: parsed.data.name,
+    createdProductId: newProductId,
+    submitId: Date.now(),
+  };
 }

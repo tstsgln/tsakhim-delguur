@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import Image from 'next/image';
 import { createProduct, type ProductState } from '@/app/actions/seller';
 
@@ -8,25 +9,88 @@ interface Props {
   categories: { id: string; name: string }[];
 }
 
+interface SelectedFile {
+  file: File;
+  preview: string;
+}
+
 export default function NewProductForm({ categories }: Props) {
   const [state, action, pending] = useActionState<ProductState, FormData>(createProduct, undefined);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const errors = state?.errors;
+  const [selected, setSelected] = useState<SelectedFile[]>([]);
+  const lastSuccessId = useRef<number | null>(null);
+  const errors = state?.success ? undefined : state?.errors;
+  const values = state?.success ? undefined : state?.values;
+  const formKey = state?.success ? `success-${state.submitId}` : state?.submitId ?? 'initial';
+
+  useEffect(() => {
+    if (state?.success && state.submitId && lastSuccessId.current !== state.submitId) {
+      lastSuccessId.current = state.submitId;
+      setSelected(prev => {
+        prev.forEach(s => URL.revokeObjectURL(s.preview));
+        return [];
+      });
+    }
+  }, [state?.success, state?.submitId]);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    previews.forEach(URL.revokeObjectURL);
+    selected.forEach(s => URL.revokeObjectURL(s.preview));
     const files = Array.from(e.target.files ?? []);
-    setPreviews(files.map(f => URL.createObjectURL(f)));
+    setSelected(files.map(f => ({ file: f, preview: URL.createObjectURL(f) })));
+  };
+
+  const removeFile = (idx: number) => {
+    setSelected(prev => {
+      URL.revokeObjectURL(prev[idx].preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    fd.delete('images');
+    for (const s of selected) fd.append('images', s.file);
+    action(fd);
   };
 
   return (
-    <form action={action} className="bg-surface border border-border rounded-xl p-6 space-y-4">
+    <div className="space-y-4">
+      {state?.success && state.createdProductName && (
+        <div className="bg-success/10 border border-success/40 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm">
+            <p className="font-semibold text-success">✓ «{state.createdProductName}» амжилттай нэмэгдлээ</p>
+            <p className="text-xs text-muted mt-0.5">Доорх формоор шууд дараагийн бараагаа нэмэх боломжтой.</p>
+          </div>
+          <div className="flex gap-2">
+            {state.createdProductId && (
+              <Link
+                href={`/product/${state.createdProductId}`}
+                className="text-xs bg-surface border border-border px-3 py-1.5 rounded-md hover:bg-primary-light/20"
+              >
+                Үзэх
+              </Link>
+            )}
+            <Link
+              href="/seller/dashboard"
+              className="text-xs bg-surface border border-border px-3 py-1.5 rounded-md hover:bg-primary-light/20"
+            >
+              Дэлгүүр рүү
+            </Link>
+          </div>
+        </div>
+      )}
+    <form
+      key={formKey}
+      onSubmit={handleSubmit}
+      className="bg-surface border border-border rounded-xl p-6 space-y-4"
+    >
       <div>
         <label className="block text-sm font-medium mb-1">Бүтээгдэхүүний нэр</label>
         <input
           name="name"
           type="text"
           placeholder="Жишээ нь: Гар хийцийн морин хуур"
+          defaultValue={values?.name ?? ''}
           className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
         />
         {errors?.name?.[0] && <p className="text-xs text-red-600 mt-1">{errors.name[0]}</p>}
@@ -38,6 +102,7 @@ export default function NewProductForm({ categories }: Props) {
           name="description"
           rows={5}
           placeholder="Хэрэглэгчид мэдэх ёстой бүх зүйлийг бичээрэй (хэмжээ, материал, гарал үүсэл гэх мэт)..."
+          defaultValue={values?.description ?? ''}
           className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
         />
         {errors?.description?.[0] && <p className="text-xs text-red-600 mt-1">{errors.description[0]}</p>}
@@ -52,6 +117,7 @@ export default function NewProductForm({ categories }: Props) {
             min={1}
             step={1}
             placeholder="0"
+            defaultValue={values?.price ?? ''}
             className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
           />
           {errors?.price?.[0] && <p className="text-xs text-red-600 mt-1">{errors.price[0]}</p>}
@@ -60,7 +126,7 @@ export default function NewProductForm({ categories }: Props) {
           <label className="block text-sm font-medium mb-1">Ангилал</label>
           <select
             name="category"
-            defaultValue={categories[0]?.id}
+            defaultValue={values?.category ?? categories[0]?.id}
             className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary bg-surface"
           >
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -76,7 +142,7 @@ export default function NewProductForm({ categories }: Props) {
           type="number"
           min={0}
           step={1}
-          defaultValue={1}
+          defaultValue={values?.stockQuantity ?? '1'}
           className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
         />
         <p className="text-xs text-muted mt-1">Бэлэн байгаа барааны тоо. Дууссан үед худалдан авагч сагсанд нэмэх боломжгүй.</p>
@@ -88,6 +154,7 @@ export default function NewProductForm({ categories }: Props) {
           name="acceptCustomOrders"
           type="checkbox"
           value="on"
+          defaultChecked={values?.acceptCustomOrders ?? false}
           className="mt-0.5 accent-primary w-4 h-4"
         />
         <span className="text-sm">
@@ -102,21 +169,35 @@ export default function NewProductForm({ categories }: Props) {
       <div>
         <label className="block text-sm font-medium mb-1">Зургууд</label>
         <input
-          name="images"
           type="file"
           multiple
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={handleFiles}
           className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-light/30 file:text-primary hover:file:bg-primary-light/50"
         />
-        <p className="text-xs text-muted mt-1">JPG, PNG, WEBP, GIF. Тус бүр 5MB-аас бага.</p>
+        <p className="text-xs text-muted mt-1">
+          JPG, PNG, WEBP, GIF. Тус бүр 5MB-аас бага.
+          {selected.length > 0 && (
+            <span className="ml-1 text-foreground font-medium">
+              · {selected.length} зураг сонгосон
+            </span>
+          )}
+        </p>
         {errors?.images?.[0] && <p className="text-xs text-red-600 mt-1">{errors.images[0]}</p>}
 
-        {previews.length > 0 && (
+        {selected.length > 0 && (
           <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {previews.map((src, i) => (
-              <div key={i} className="aspect-square relative rounded-lg overflow-hidden border border-border">
-                <Image src={src} alt={`Preview ${i + 1}`} fill sizes="20vw" className="object-cover" unoptimized />
+            {selected.map((s, i) => (
+              <div key={i} className="aspect-square relative rounded-lg overflow-hidden border border-border group">
+                <Image src={s.preview} alt={`Preview ${i + 1}`} fill sizes="20vw" className="object-cover" unoptimized />
+                <button
+                  type="button"
+                  onClick={() => removeFile(i)}
+                  className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full text-xs leading-none flex items-center justify-center hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Устгах"
+                >
+                  ✕
+                </button>
               </div>
             ))}
           </div>
@@ -133,5 +214,6 @@ export default function NewProductForm({ categories }: Props) {
         {pending ? 'Хадгалж байна...' : 'Бараа нэмэх'}
       </button>
     </form>
+    </div>
   );
 }
