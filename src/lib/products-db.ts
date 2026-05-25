@@ -195,6 +195,29 @@ export function getProductsBySeller(sellerId: number): Product[] {
   return rows.map(toProduct);
 }
 
+export interface StoreSearchResult {
+  id: number;
+  storeName: string;
+  location: string;
+  productCount: number;
+}
+
+export function searchStores(query: string, limit = 12): StoreSearchResult[] {
+  const q = query.trim();
+  if (!q) return [];
+  const like = `%${q}%`;
+  return db
+    .prepare(
+      `SELECT s.id, s.store_name AS storeName, s.location,
+              (SELECT COUNT(*) FROM products p WHERE p.seller_id = s.id) AS productCount
+       FROM sellers s
+       WHERE LOWER(s.store_name) LIKE LOWER(?)
+       ORDER BY productCount DESC, s.created_at DESC
+       LIMIT ?`,
+    )
+    .all(like, limit) as StoreSearchResult[];
+}
+
 export function getCategoryCounts(): Record<string, number> {
   const rows = db
     .prepare('SELECT category, COUNT(*) AS count FROM products GROUP BY category')

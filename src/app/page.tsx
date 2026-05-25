@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { categories } from '@/lib/data';
-import { getAllProducts, getCategoryCounts } from '@/lib/products-db';
+import { getAllProducts } from '@/lib/products-db';
 
 export default async function HomePage() {
   const products = getAllProducts();
-  const counts = getCategoryCounts();
   const latestProducts = products.slice(0, 8);
   const totalProducts = products.length;
 
@@ -27,39 +26,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-          {categories.map(cat => (
-            <Link
-              key={cat.id}
-              href={`/products?category=${cat.id}`}
-              className="group flex flex-col items-center text-center rounded-2xl bg-surface border border-border p-4 transition-all hover:border-primary hover:shadow-[0_6px_20px_-8px_rgba(194,24,91,0.4)] hover:-translate-y-0.5"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/8 group-hover:bg-primary group-hover:text-white flex items-center justify-center text-2xl mb-2 transition-colors">
-                {cat.icon}
-              </div>
-              <h3 className="text-sm font-semibold leading-tight group-hover:text-primary transition-colors">{cat.name}</h3>
-              <p className="text-[11px] text-muted mt-0.5">{counts[cat.id] ?? 0} бараа</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {/* Latest Products */}
-      <section className="bg-surface border-y border-border">
-        <div className="max-w-7xl mx-auto px-4 py-16">
-          <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
-            <div>
-              <div className="inline-block bg-accent/10 text-accent px-3 py-1 rounded-full text-xs font-semibold mb-2">
-                ✨ ШИНЭ НЭМЭГДСЭН
-              </div>
-              <h2 className="text-3xl font-bold">Сүүлд нэмэгдсэн бүтээгдэхүүн</h2>
+      <section className="max-w-7xl mx-auto px-4 pt-10 pb-16">
+        <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
+          <div>
+            <div className="inline-block bg-accent/10 text-accent px-3 py-1 rounded-full text-xs font-semibold mb-2">
+              ✨ ШИНЭ НЭМЭГДСЭН
             </div>
-            <Link href="/products" className="text-primary hover:underline text-sm font-semibold">
-              Бүгдийг үзэх →
-            </Link>
+            <h2 className="text-3xl font-bold">Сүүлд нэмэгдсэн бүтээгдэхүүн</h2>
           </div>
+          <Link href="/products" className="text-primary hover:underline text-sm font-semibold">
+            Бүгдийг үзэх →
+          </Link>
+        </div>
 
           {latestProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -82,7 +61,6 @@ export default async function HomePage() {
               </Link>
             </div>
           )}
-        </div>
       </section>
 
       {/* Why us */}

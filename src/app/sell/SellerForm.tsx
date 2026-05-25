@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import Link from 'next/link';
 import { becomeSeller, type SellerState } from '@/app/actions/seller';
 
 const LOCATIONS = ['Улаанбаатар', 'Дархан', 'Эрдэнэт', 'Бусад'];
@@ -11,29 +12,6 @@ export default function SellerForm() {
 
   return (
     <form action={action} className="bg-surface border border-border rounded-xl p-6 space-y-4">
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Овог</label>
-          <input
-            name="lastName"
-            type="text"
-            placeholder="Овог"
-            className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
-          />
-          {errors?.lastName?.[0] && <p className="text-xs text-red-600 mt-1">{errors.lastName[0]}</p>}
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Нэр</label>
-          <input
-            name="firstName"
-            type="text"
-            placeholder="Нэр"
-            className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
-          />
-          {errors?.firstName?.[0] && <p className="text-xs text-red-600 mt-1">{errors.firstName[0]}</p>}
-        </div>
-      </div>
-
       <div>
         <label className="block text-sm font-medium mb-1">Дэлгүүрийн нэр</label>
         <input
@@ -80,7 +58,9 @@ export default function SellerForm() {
 
       <label className="flex items-start gap-2 text-sm cursor-pointer">
         <input name="agreed" type="checkbox" className="accent-primary mt-1" />
-        <span className="text-muted">Үйлчилгээний нөхцөлийг зөвшөөрч байна</span>
+        <span className="text-muted">
+          <Link href="/terms" target="_blank" className="text-primary hover:underline">Үйлчилгээний нөхцөл</Link>-ийг зөвшөөрч байна
+        </span>
       </label>
       {errors?.agreed?.[0] && <p className="text-xs text-red-600">{errors.agreed[0]}</p>}
 

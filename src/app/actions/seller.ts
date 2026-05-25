@@ -11,8 +11,6 @@ import { getSessionUser } from '@/lib/session';
 import type { SellerRow } from '@/lib/types';
 
 const SellerSchema = z.object({
-  lastName: z.string().trim().min(1, 'Овог шаардлагатай'),
-  firstName: z.string().trim().min(1, 'Нэр шаардлагатай'),
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   location: z.string().trim().min(1, 'Байршил шаардлагатай'),
@@ -37,8 +35,6 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
   }
 
   const parsed = SellerSchema.safeParse({
-    lastName: formData.get('lastName'),
-    firstName: formData.get('firstName'),
     storeName: formData.get('storeName'),
     phone: formData.get('phone'),
     location: formData.get('location'),

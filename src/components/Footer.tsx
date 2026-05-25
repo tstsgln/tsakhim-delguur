@@ -52,8 +52,8 @@ export default function Footer() {
         <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p>© 2024 Цэцэглэн. Бүх эрх хуулиар хамгаалагдсан.</p>
           <div className="flex gap-4 mt-2 md:mt-0">
-            <Link href="/about" className="hover:text-white transition-colors">Нууцлалын бодлого</Link>
-            <Link href="/about" className="hover:text-white transition-colors">Үйлчилгээний нөхцөл</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Нууцлалын бодлого</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Үйлчилгээний нөхцөл</Link>
           </div>
         </div>
       </div>

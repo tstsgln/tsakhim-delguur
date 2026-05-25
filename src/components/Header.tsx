@@ -67,6 +67,7 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
   const [categoryDropdown, setCategoryDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const categoryMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!userDropdown) return;
@@ -78,6 +79,17 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [userDropdown]);
+
+  useEffect(() => {
+    if (!categoryDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(e.target as Node)) {
+        setCategoryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [categoryDropdown]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,33 +250,29 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
       {/* Category nav */}
       <nav className="border-t border-border bg-surface">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="hidden md:flex items-center gap-1 py-2 text-sm overflow-x-auto">
-            <div
-              className="relative"
-              onMouseEnter={() => setCategoryDropdown(true)}
-              onMouseLeave={() => setCategoryDropdown(false)}
-            >
+          <div className="hidden md:flex items-center gap-1 py-2 text-sm">
+            <div ref={categoryMenuRef} className="relative">
               <button
+                type="button"
                 onClick={() => setCategoryDropdown(v => !v)}
+                aria-expanded={categoryDropdown}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-md hover:bg-primary-light/30 transition-colors font-medium whitespace-nowrap"
               >
-                ☰ Бүх ангилал
+                ☰ Бүх ангилал <span className="text-xs">▾</span>
               </button>
               {categoryDropdown && (
-                <div className="absolute left-0 top-full pt-1 z-50">
-                  <div className="bg-surface border border-border rounded-lg shadow-lg py-2 w-64 max-h-[70vh] overflow-y-auto">
-                    {categories.map(cat => (
-                      <Link
-                        key={cat.id}
-                        href={`/products?category=${cat.id}`}
-                        onClick={() => setCategoryDropdown(false)}
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-primary-light/20 transition-colors"
-                      >
-                        <span>{cat.icon}</span>
-                        <span>{cat.name}</span>
-                      </Link>
-                    ))}
-                  </div>
+                <div className="absolute left-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-2 w-64 max-h-[70vh] overflow-y-auto z-50">
+                  {categories.map(cat => (
+                    <Link
+                      key={cat.id}
+                      href={`/products?category=${cat.id}`}
+                      onClick={() => setCategoryDropdown(false)}
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-primary-light/20 transition-colors"
+                    >
+                      <span>{cat.icon}</span>
+                      <span>{cat.name}</span>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>

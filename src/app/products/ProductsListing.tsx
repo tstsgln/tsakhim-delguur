@@ -1,19 +1,22 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import { categories } from '@/lib/data';
 import type { Product } from '@/lib/types';
+import type { StoreSearchResult } from '@/lib/products-db';
 
 type SortOption = 'newest' | 'price-low' | 'price-high' | 'rating' | 'popular';
 
 interface Props {
   products: Product[];
   categoryCounts: Record<string, number>;
+  matchingStores?: StoreSearchResult[];
 }
 
-export default function ProductsListing({ products, categoryCounts }: Props) {
+export default function ProductsListing({ products, categoryCounts, matchingStores = [] }: Props) {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
   const searchQuery = searchParams.get('search') || '';
@@ -152,6 +155,31 @@ export default function ProductsListing({ products, categoryCounts }: Props) {
 
         {/* Product grid */}
         <div className="flex-1">
+          {searchQuery && matchingStores.length > 0 && (
+            <section className="mb-6 bg-surface border border-border rounded-xl p-4">
+              <h3 className="text-sm font-semibold mb-3">🏪 Олдсон дэлгүүрүүд ({matchingStores.length})</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {matchingStores.map(s => (
+                  <Link
+                    key={s.id}
+                    href={`/store/${s.id}`}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary-light/20 transition-colors border border-transparent hover:border-border"
+                  >
+                    <span className="w-10 h-10 rounded-full bg-primary-light/30 flex items-center justify-center text-xl flex-shrink-0">
+                      🏪
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{s.storeName}</p>
+                      <p className="text-xs text-muted truncate">
+                        📍 {s.location} · {s.productCount} бараа
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Sort bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <p className="text-sm text-muted">
