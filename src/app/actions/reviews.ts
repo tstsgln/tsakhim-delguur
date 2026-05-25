@@ -13,9 +13,16 @@ const ReviewSchema = z.object({
   comment: z.string().trim().max(2000).optional(),
 });
 
+interface ReviewErrors {
+  rating?: string[];
+  comment?: string[];
+  form?: string[];
+  orderItemId?: string[];
+}
+
 export type ReviewState =
   | {
-      errors?: { rating?: string[]; comment?: string[]; form?: string[] };
+      errors?: ReviewErrors;
       success?: boolean;
       orderItemId?: number;
     }
@@ -31,7 +38,7 @@ export async function submitReview(_state: ReviewState, formData: FormData): Pro
     comment: formData.get('comment') || undefined,
   });
   if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors as ReviewState['errors'] };
+    return { errors: parsed.error.flatten().fieldErrors as ReviewErrors };
   }
 
   const itemRow = db
