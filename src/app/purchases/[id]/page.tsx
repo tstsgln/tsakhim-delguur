@@ -5,9 +5,11 @@ import { getSessionUser } from '@/lib/session';
 import { isAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { getOrder, getOrderItems, autoReleaseStaleOrders } from '@/lib/orders-db';
+import { getReviewsForOrder } from '@/lib/reviews-db';
 import { formatPrice } from '@/lib/data';
 import { orderStatusLabel, orderStatusColor, formatOrderDate } from '@/lib/order-format';
 import { buyerConfirmReceived, buyerCancel } from '@/app/actions/orders';
+import ReviewForm from './ReviewForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,7 @@ export default async function PurchaseDetailPage({ params }: PageProps) {
   if (!isOwner && !isAdmin(user)) notFound();
 
   const items = getOrderItems(orderId);
+  const reviews = isOwner && order.status === 'completed' ? getReviewsForOrder(orderId) : new Map();
   const seller = db
     .prepare('SELECT store_name, phone, location FROM sellers WHERE id = ?')
     .get(order.seller_id) as { store_name: string; phone: string; location: string } | undefined;
@@ -87,30 +90,49 @@ export default async function PurchaseDetailPage({ params }: PageProps) {
       <div className="bg-surface border border-border rounded-xl p-5 mb-5">
         <h2 className="font-bold mb-3">Бараа</h2>
         <div className="space-y-3">
-          {items.map(it => (
-            <div key={it.id} className="flex gap-3 items-center">
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0 relative">
-                {it.product_image_path ? (
-                  <Image src={it.product_image_path} alt={it.product_name} fill sizes="64px" className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
-                )}
+          {items.map(it => {
+            const existingReview = reviews.get(it.id);
+            const canReview = isOwner && order.status === 'completed' && it.product_id != null && !existingReview;
+            return (
+            <div key={it.id} className="border-b border-border last:border-0 pb-3 last:pb-0">
+              <div className="flex gap-3 items-center">
+                <div className="w-16 h-16 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0 relative">
+                  {it.product_image_path ? (
+                    <Image src={it.product_image_path} alt={it.product_name} fill sizes="64px" className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {it.product_id ? (
+                    <Link href={`/product/${it.product_id}`} className="font-medium hover:text-primary truncate block">
+                      {it.product_name}
+                    </Link>
+                  ) : (
+                    <p className="font-medium truncate">{it.product_name}</p>
+                  )}
+                  <p className="text-xs text-muted">
+                    {formatPrice(it.unit_price)} × {it.quantity}
+                  </p>
+                </div>
+                <p className="font-semibold">{formatPrice(it.line_total)}</p>
               </div>
-              <div className="flex-1 min-w-0">
-                {it.product_id ? (
-                  <Link href={`/product/${it.product_id}`} className="font-medium hover:text-primary truncate block">
-                    {it.product_name}
-                  </Link>
-                ) : (
-                  <p className="font-medium truncate">{it.product_name}</p>
-                )}
-                <p className="text-xs text-muted">
-                  {formatPrice(it.unit_price)} × {it.quantity}
-                </p>
-              </div>
-              <p className="font-semibold">{formatPrice(it.line_total)}</p>
+              {existingReview && (
+                <div className="mt-3 bg-primary-light/10 border border-border rounded-lg p-3">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-warning text-sm">{'★'.repeat(existingReview.rating)}</span>
+                    <span className="text-border text-sm">{'★'.repeat(5 - existingReview.rating)}</span>
+                    <span className="ml-1 text-xs text-muted">Таны үнэлгээ</span>
+                  </div>
+                  {existingReview.comment && (
+                    <p className="text-sm text-muted">{existingReview.comment}</p>
+                  )}
+                </div>
+              )}
+              {canReview && <ReviewForm orderItemId={it.id} />}
             </div>
-          ))}
+            );
+          })}
         </div>
         <div className="border-t border-border mt-4 pt-3 flex justify-between font-bold">
           <span>Нийт</span>

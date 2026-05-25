@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCart } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/data';
 import PlaceholderImage from '@/components/PlaceholderImage';
@@ -31,11 +32,23 @@ export default function CartPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Cart items */}
         <div className="lg:col-span-2 space-y-4">
-          {items.map(({ product, quantity }) => (
+          {items.map(({ product, quantity }) => {
+            const cover = product.images?.[0];
+            return (
             <div key={product.id} className="bg-surface border border-border rounded-xl p-4 flex gap-4">
-              <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                <PlaceholderImage category={product.category} name={product.name} size="sm" />
-              </div>
+              <Link href={`/product/${product.id}`} className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-surface">
+                {cover ? (
+                  <Image
+                    src={cover}
+                    alt={product.name}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <PlaceholderImage category={product.category} name={product.name} size="sm" />
+                )}
+              </Link>
               <div className="flex-1 min-w-0">
                 <Link href={`/product/${product.id}`} className="font-medium hover:text-primary transition-colors line-clamp-1">
                   {product.name}
@@ -67,7 +80,8 @@ export default function CartPage() {
                 ✕
               </button>
             </div>
-          ))}
+            );
+          })}
 
           <button
             onClick={clearCart}

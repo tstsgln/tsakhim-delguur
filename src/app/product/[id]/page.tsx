@@ -6,6 +6,7 @@ import { getSessionUser } from '@/lib/session';
 import { db } from '@/lib/db';
 import ProductCard from '@/components/ProductCard';
 import ProductDetail from './ProductDetail';
+import ReviewsSection from './ReviewsSection';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -54,6 +55,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
       </nav>
 
       <ProductDetail product={product} seller={seller} canMessage={!isOwnStore} />
+
+      <ReviewsSection productId={numericId} />
 
       {related.length > 0 && (
         <section>

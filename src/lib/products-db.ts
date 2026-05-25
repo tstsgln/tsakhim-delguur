@@ -18,6 +18,8 @@ interface JoinedRow {
   seller_phone?: string;
   seller_description?: string | null;
   images: string;
+  avg_rating: number;
+  review_count: number;
 }
 
 export interface ProductDetail {
@@ -57,7 +59,9 @@ const BASE_QUERY = `
        )
       ),
       '[]'
-    ) AS images
+    ) AS images,
+    COALESCE((SELECT AVG(rating) FROM reviews WHERE product_id = p.id), 0) AS avg_rating,
+    (SELECT COUNT(*) FROM reviews WHERE product_id = p.id) AS review_count
   FROM products p
   JOIN sellers s ON s.id = p.seller_id
 `;
@@ -82,8 +86,8 @@ function toProduct(row: JoinedRow): Product {
       location: row.seller_location,
       joinedDate: row.seller_joined,
     },
-    rating: 0,
-    reviewCount: 0,
+    rating: row.avg_rating,
+    reviewCount: row.review_count,
     tags: [],
     isNew,
     createdAt: row.created_at,
@@ -127,7 +131,9 @@ const DETAIL_QUERY = `
        )
       ),
       '[]'
-    ) AS images
+    ) AS images,
+    COALESCE((SELECT AVG(rating) FROM reviews WHERE product_id = p.id), 0) AS avg_rating,
+    (SELECT COUNT(*) FROM reviews WHERE product_id = p.id) AS review_count
   FROM products p
   JOIN sellers s ON s.id = p.seller_id
   WHERE p.id = ?
