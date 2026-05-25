@@ -12,6 +12,7 @@ import {
   findOrCreateConversation,
   getConversationForUser,
   insertMessage,
+  insertProductReferenceIfNew,
 } from '@/lib/chat-db';
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -21,6 +22,9 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 export async function startConversationWithSeller(formData: FormData): Promise<void> {
   const sellerId = Number(formData.get('sellerId'));
   if (!Number.isInteger(sellerId) || sellerId <= 0) redirect('/products');
+
+  const rawProductId = Number(formData.get('productId'));
+  const productId = Number.isInteger(rawProductId) && rawProductId > 0 ? rawProductId : null;
 
   const user = await getSessionUser();
   if (!user) redirect('/login');
@@ -36,6 +40,16 @@ export async function startConversationWithSeller(formData: FormData): Promise<v
   }
 
   const conversationId = findOrCreateConversation(user.id, seller.id);
+
+  if (productId != null) {
+    const product = db
+      .prepare('SELECT seller_id FROM products WHERE id = ?')
+      .get(productId) as { seller_id: number } | undefined;
+    if (product && product.seller_id === seller.id) {
+      insertProductReferenceIfNew(conversationId, user.id, productId);
+    }
+  }
+
   redirect(`/messages/${conversationId}`);
 }
 

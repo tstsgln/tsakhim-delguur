@@ -4,22 +4,32 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import { categories, formatPrice } from '@/lib/data';
-import type { SellerRow, ProductRow } from '@/lib/types';
+import type { ProductRow } from '@/lib/types';
+import { getStoresForUser, resolveActiveStore, parseStoreParam } from '@/lib/seller-stores';
 import SellerInfoCard from './SellerInfoCard';
 import ProductInventoryRow from './ProductInventoryRow';
+import StoreSwitcher from '../StoreSwitcher';
 
 interface ProductListItem extends ProductRow {
   cover_image: string | null;
 }
 
-export default async function SellerDashboard() {
+interface PageProps {
+  searchParams: Promise<{ store?: string }>;
+}
+
+export const dynamic = 'force-dynamic';
+
+export default async function SellerDashboard({ searchParams }: PageProps) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
 
-  const seller = db
-    .prepare('SELECT * FROM sellers WHERE user_id = ?')
-    .get(user.id) as SellerRow | undefined;
-  if (!seller) redirect('/sell');
+  const sp = await searchParams;
+  const stores = getStoresForUser(user.id);
+  if (stores.length === 0) redirect('/sell');
+
+  const active = resolveActiveStore(user.id, parseStoreParam(sp.store));
+  if (!active) redirect('/sell');
 
   const products = db
     .prepare(
@@ -32,24 +42,40 @@ export default async function SellerDashboard() {
        WHERE p.seller_id = ?
        ORDER BY p.created_at DESC`,
     )
-    .all(seller.id) as ProductListItem[];
+    .all(active.id) as ProductListItem[];
 
   const categoryName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
+  const qs = `?store=${active.id}`;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
+      {stores.length > 1 && (
+        <StoreSwitcher
+          stores={stores.map(s => ({ id: s.id, storeName: s.store_name }))}
+          activeId={active.id}
+        />
+      )}
+      {stores.length === 1 && (
+        <div className="text-right mb-3">
+          <Link href="/sell" className="text-xs text-primary hover:underline">
+            + Шинэ дэлгүүр нээх
+          </Link>
+        </div>
+      )}
+
       <SellerInfoCard
+        storeId={active.id}
         seller={{
-          store_name: seller.store_name,
-          phone: seller.phone,
-          location: seller.location,
-          description: seller.description,
+          store_name: active.store_name,
+          phone: active.phone,
+          location: active.location,
+          description: active.description,
         }}
       />
 
       <div className="flex flex-wrap gap-3 mb-6">
         <Link
-          href="/seller/orders"
+          href={`/seller/orders${qs}`}
           className="flex-1 min-w-[180px] bg-surface border border-border rounded-xl p-4 hover:border-primary transition-colors"
         >
           <p className="text-sm text-muted mb-1">📦 Захиалга</p>
@@ -66,7 +92,12 @@ export default async function SellerDashboard() {
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Миний бүтээгдэхүүнүүд</h2>
-        <span className="text-sm text-muted">{products.length} бүтээгдэхүүн</span>
+        <Link
+          href={`/seller/products/new${qs}`}
+          className="bg-primary text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-primary-dark"
+        >
+          + Шинэ бараа
+        </Link>
       </div>
 
       {products.length === 0 ? (
@@ -74,7 +105,7 @@ export default async function SellerDashboard() {
           <p className="text-4xl mb-3">📦</p>
           <p className="text-muted mb-4">Та одоогоор бараа нэмээгүй байна.</p>
           <Link
-            href="/seller/products/new"
+            href={`/seller/products/new${qs}`}
             className="inline-block bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors"
           >
             Эхний бараагаа нэмэх

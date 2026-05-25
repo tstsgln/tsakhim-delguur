@@ -20,7 +20,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 15;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -200,6 +200,37 @@ if (currentVersion < SCHEMA_VERSION) {
     db.exec('ALTER TABLE sellers DROP COLUMN category');
   }
 
+  const sellerIndexes = db.prepare("PRAGMA index_list(sellers)").all() as Array<{ name: string; unique: number; origin: string }>;
+  const hasUniqueUserId = sellerIndexes.some(idx => {
+    if (idx.unique !== 1) return false;
+    const info = db.prepare(`PRAGMA index_info('${idx.name}')`).all() as Array<{ name: string }>;
+    return info.length === 1 && info[0].name === 'user_id';
+  });
+  if (hasUniqueUserId) {
+    db.pragma('foreign_keys = OFF');
+    db.exec(`
+      BEGIN;
+      CREATE TABLE sellers_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        store_name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        location TEXT NOT NULL,
+        description TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO sellers_new (id, user_id, store_name, phone, location, description, created_at)
+        SELECT id, user_id, store_name, phone, location, description, created_at FROM sellers;
+      DROP TABLE sellers;
+      ALTER TABLE sellers_new RENAME TO sellers;
+      CREATE INDEX IF NOT EXISTS idx_sellers_user ON sellers(user_id);
+      COMMIT;
+    `);
+    db.pragma('foreign_keys = ON');
+  } else {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_sellers_user ON sellers(user_id)');
+  }
+
   const userCols = db.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
   if (userCols.length > 0 && !userCols.some(c => c.name === 'email_verified_at')) {
     db.exec("ALTER TABLE users ADD COLUMN email_verified_at TEXT");
@@ -212,6 +243,9 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (messageCols.length > 0 && !messageCols.some(c => c.name === 'image_path')) {
     db.exec('ALTER TABLE messages ADD COLUMN image_path TEXT');
+  }
+  if (messageCols.length > 0 && !messageCols.some(c => c.name === 'product_id')) {
+    db.exec('ALTER TABLE messages ADD COLUMN product_id INTEGER REFERENCES products(id) ON DELETE SET NULL');
   }
 
   const productCols = db.prepare("PRAGMA table_info(products)").all() as Array<{ name: string }>;

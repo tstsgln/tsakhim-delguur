@@ -7,6 +7,7 @@ import { updateSeller, type UpdateSellerState } from '@/app/actions/seller';
 const LOCATIONS = ['Улаанбаатар', 'Дархан', 'Эрдэнэт', 'Бусад'];
 
 interface Props {
+  storeId: number;
   seller: {
     store_name: string;
     phone: string;
@@ -15,7 +16,7 @@ interface Props {
   };
 }
 
-export default function SellerInfoCard({ seller }: Props) {
+export default function SellerInfoCard({ storeId, seller }: Props) {
   const [editing, setEditing] = useState(false);
   const [state, action, pending] = useActionState<UpdateSellerState, FormData>(updateSeller, undefined);
   const errors = state?.errors;
@@ -30,6 +31,7 @@ export default function SellerInfoCard({ seller }: Props) {
     <div className="bg-surface border border-border rounded-xl p-6 mb-8">
       {editing ? (
         <form action={action} className="space-y-4">
+          <input type="hidden" name="storeId" value={storeId} />
           <div>
             <label className="block text-sm font-medium mb-1">Дэлгүүрийн нэр</label>
             <input
@@ -110,7 +112,7 @@ export default function SellerInfoCard({ seller }: Props) {
               ✏️ Засах
             </button>
             <Link
-              href="/seller/products/new"
+              href={`/seller/products/new?store=${storeId}`}
               className="bg-primary text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-primary-dark transition-colors text-sm"
             >
               + Бараа нэмэх

@@ -2,28 +2,42 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/session';
-import { db } from '@/lib/db';
 import { listOrdersForSeller, autoReleaseStaleOrders } from '@/lib/orders-db';
 import { formatPrice } from '@/lib/data';
 import { orderStatusLabel, orderStatusColor, formatOrderDate } from '@/lib/order-format';
-import type { SellerRow } from '@/lib/types';
+import { getStoresForUser, resolveActiveStore, parseStoreParam } from '@/lib/seller-stores';
+import StoreSwitcher from '../StoreSwitcher';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SellerOrdersPage() {
+interface PageProps {
+  searchParams: Promise<{ store?: string }>;
+}
+
+export default async function SellerOrdersPage({ searchParams }: PageProps) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
-  const seller = db
-    .prepare('SELECT * FROM sellers WHERE user_id = ?')
-    .get(user.id) as SellerRow | undefined;
-  if (!seller) redirect('/sell');
+
+  const sp = await searchParams;
+  const stores = getStoresForUser(user.id);
+  if (stores.length === 0) redirect('/sell');
+
+  const active = resolveActiveStore(user.id, parseStoreParam(sp.store));
+  if (!active) redirect('/sell');
 
   autoReleaseStaleOrders();
-  const orders = listOrdersForSeller(seller.id);
+  const orders = listOrdersForSeller(active.id);
+  const qs = `?store=${active.id}`;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <Link href="/seller/dashboard" className="text-sm text-muted hover:text-primary mb-3 inline-block">
+      {stores.length > 1 && (
+        <StoreSwitcher
+          stores={stores.map(s => ({ id: s.id, storeName: s.store_name }))}
+          activeId={active.id}
+        />
+      )}
+      <Link href={`/seller/dashboard${qs}`} className="text-sm text-muted hover:text-primary mb-3 inline-block">
         ← Дэлгүүр
       </Link>
       <h1 className="text-2xl font-bold mb-6">📦 Ирсэн захиалгууд</h1>
@@ -38,7 +52,7 @@ export default async function SellerOrdersPage() {
           {orders.map(o => (
             <Link
               key={o.id}
-              href={`/seller/orders/${o.id}`}
+              href={`/seller/orders/${o.id}${qs}`}
               className="flex items-center gap-4 bg-surface border border-border rounded-xl p-4 hover:border-primary transition-colors"
             >
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0 relative">

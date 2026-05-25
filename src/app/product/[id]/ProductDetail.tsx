@@ -127,6 +127,7 @@ export default function ProductDetail({ product, seller, canMessage }: Props) {
               product.acceptCustomOrders ? (
                 <form action={startConversationWithSeller} className="flex-1">
                   <input type="hidden" name="sellerId" value={seller.id} />
+                  <input type="hidden" name="productId" value={product.id} />
                   <button
                     type="submit"
                     className="w-full bg-accent text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity active:scale-95"
@@ -190,6 +191,7 @@ export default function ProductDetail({ product, seller, canMessage }: Props) {
             {canMessage && (
               <form action={startConversationWithSeller}>
                 <input type="hidden" name="sellerId" value={seller.id} />
+                <input type="hidden" name="productId" value={product.id} />
                 <button
                   type="submit"
                   className="inline-flex items-center justify-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors"

@@ -7,6 +7,7 @@ import { createProduct, type ProductState } from '@/app/actions/seller';
 
 interface Props {
   categories: { id: string; name: string }[];
+  storeId: number;
 }
 
 interface SelectedFile {
@@ -14,7 +15,7 @@ interface SelectedFile {
   preview: string;
 }
 
-export default function NewProductForm({ categories }: Props) {
+export default function NewProductForm({ categories, storeId }: Props) {
   const [state, action, pending] = useActionState<ProductState, FormData>(createProduct, undefined);
   const [selected, setSelected] = useState<SelectedFile[]>([]);
   const lastSuccessId = useRef<number | null>(null);
@@ -84,6 +85,7 @@ export default function NewProductForm({ categories }: Props) {
       onSubmit={handleSubmit}
       className="bg-surface border border-border rounded-xl p-6 space-y-4"
     >
+      <input type="hidden" name="storeId" value={storeId} />
       <div>
         <label className="block text-sm font-medium mb-1">Бүтээгдэхүүний нэр</label>
         <input

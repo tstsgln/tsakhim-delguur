@@ -2,8 +2,10 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { sendMessage, type SendMessageState } from '@/app/actions/chat';
+import { formatPrice } from '@/lib/data';
 import type { MessageRow } from '@/lib/chat-db';
 
 const NOTIFY_TITLE = 'Шинэ зурвас';
@@ -104,6 +106,47 @@ export default function ChatBox({ conversationId, currentUserId, initialMessages
         ) : (
           initialMessages.map(m => {
             const mine = m.sender_user_id === currentUserId;
+
+            if (m.product_id) {
+              return (
+                <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                  <Link
+                    href={`/product/${m.product_id}`}
+                    className={`max-w-[75%] rounded-2xl border bg-surface hover:border-primary transition-colors overflow-hidden ${
+                      mine ? 'rounded-br-sm border-primary/40' : 'rounded-bl-sm border-border'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 p-2">
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0">
+                        {m.product_image_path ? (
+                          <Image
+                            src={m.product_image_path}
+                            alt={m.product_name ?? ''}
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium line-clamp-2">
+                          {m.product_name ?? 'Бараа устсан'}
+                        </p>
+                        {m.product_price != null && (
+                          <p className="text-sm font-bold text-primary mt-0.5">
+                            {formatPrice(m.product_price)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted px-3 pb-1.5">{formatTime(m.created_at)}</p>
+                  </Link>
+                </div>
+              );
+            }
+
             return (
               <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div

@@ -51,12 +51,8 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
   }
 
   const data = parsed.data;
-  const existing = db.prepare('SELECT id FROM sellers WHERE user_id = ?').get(user.id);
-  if (existing) {
-    return { message: 'Та аль хэдийн борлуулагч байна' };
-  }
 
-  db.prepare(
+  const result = db.prepare(
     `INSERT INTO sellers (user_id, store_name, phone, location, description)
      VALUES (?, ?, ?, ?, ?)`,
   ).run(
@@ -66,12 +62,14 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
     data.location,
     data.description || null,
   );
+  const newStoreId = Number(result.lastInsertRowid);
 
   revalidatePath('/sell');
-  redirect('/seller/dashboard');
+  redirect(`/seller/dashboard?store=${newStoreId}`);
 }
 
 const UpdateSellerSchema = z.object({
+  storeId: z.coerce.number().int().positive(),
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   location: z.string().trim().min(1, 'Байршил шаардлагатай'),
@@ -90,10 +88,8 @@ export async function updateSeller(_state: UpdateSellerState, formData: FormData
   const user = await getSessionUser();
   if (!user) return { message: 'Эхлээд нэвтэрнэ үү' };
 
-  const existing = db.prepare('SELECT id FROM sellers WHERE user_id = ?').get(user.id);
-  if (!existing) return { message: 'Та борлуулагч биш байна' };
-
   const parsed = UpdateSellerSchema.safeParse({
+    storeId: formData.get('storeId'),
     storeName: formData.get('storeName'),
     phone: formData.get('phone'),
     location: formData.get('location'),
@@ -105,9 +101,14 @@ export async function updateSeller(_state: UpdateSellerState, formData: FormData
   }
 
   const data = parsed.data;
+  const owned = db
+    .prepare('SELECT 1 FROM sellers WHERE id = ? AND user_id = ?')
+    .get(data.storeId, user.id);
+  if (!owned) return { message: 'Энэ дэлгүүр таных биш байна' };
+
   db.prepare(
-    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, description = ? WHERE user_id = ?`,
-  ).run(data.storeName, data.phone, data.location, data.description || null, user.id);
+    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, description = ? WHERE id = ?`,
+  ).run(data.storeName, data.phone, data.location, data.description || null, data.storeId);
 
   revalidatePath('/seller/dashboard');
   return { success: true };
@@ -161,14 +162,13 @@ export async function updateProductInventory(formData: FormData) {
   const productId = Number(formData.get('productId'));
   if (!Number.isInteger(productId) || productId <= 0) return;
 
-  const seller = db
-    .prepare('SELECT id FROM sellers WHERE user_id = ?')
-    .get(user.id) as { id: number } | undefined;
-  if (!seller) return;
-
   const owned = db
-    .prepare('SELECT 1 FROM products WHERE id = ? AND seller_id = ?')
-    .get(productId, seller.id);
+    .prepare(
+      `SELECT 1 FROM products p
+       JOIN sellers s ON s.id = p.seller_id
+       WHERE p.id = ? AND s.user_id = ?`,
+    )
+    .get(productId, user.id);
   if (!owned) return;
 
   const stockRaw = formData.get('stockQuantity');
@@ -203,9 +203,10 @@ export async function createProduct(_state: ProductState, formData: FormData): P
   if (!user) return { message: 'Эхлээд нэвтэрнэ үү', values: submittedValues, submitId: Date.now() };
   if (!user.emailVerified) return { message: 'Эхлээд имэйл хаягаа баталгаажуулна уу', values: submittedValues, submitId: Date.now() };
 
-  const seller = db
-    .prepare('SELECT id FROM sellers WHERE user_id = ?')
-    .get(user.id) as Pick<SellerRow, 'id'> | undefined;
+  const storeId = Number(formData.get('storeId'));
+  const seller = Number.isInteger(storeId) && storeId > 0
+    ? (db.prepare('SELECT id FROM sellers WHERE id = ? AND user_id = ?').get(storeId, user.id) as Pick<SellerRow, 'id'> | undefined)
+    : (db.prepare('SELECT id FROM sellers WHERE user_id = ? ORDER BY created_at ASC LIMIT 1').get(user.id) as Pick<SellerRow, 'id'> | undefined);
   if (!seller) return { message: 'Та борлуулагч биш байна', values: submittedValues, submitId: Date.now() };
 
   const parsed = ProductSchema.safeParse({
@@ -294,3 +295,4 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     submitId: Date.now(),
   };
 }
+

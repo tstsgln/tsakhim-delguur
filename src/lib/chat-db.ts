@@ -17,6 +17,10 @@ export interface MessageRow {
   sender_user_id: number;
   body: string;
   image_path: string | null;
+  product_id: number | null;
+  product_name: string | null;
+  product_image_path: string | null;
+  product_price: number | null;
   created_at: string;
 }
 
@@ -67,7 +71,20 @@ export function getConversationForUser(
 export function listMessages(conversationId: number): MessageRow[] {
   return db
     .prepare(
-      'SELECT id, sender_user_id, body, image_path, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC, id ASC',
+      `SELECT
+         m.id,
+         m.sender_user_id,
+         m.body,
+         m.image_path,
+         m.product_id,
+         m.created_at,
+         p.name AS product_name,
+         p.price AS product_price,
+         (SELECT path FROM product_images WHERE product_id = p.id ORDER BY position ASC LIMIT 1) AS product_image_path
+       FROM messages m
+       LEFT JOIN products p ON p.id = m.product_id
+       WHERE m.conversation_id = ?
+       ORDER BY m.created_at ASC, m.id ASC`,
     )
     .all(conversationId) as MessageRow[];
 }
@@ -82,6 +99,29 @@ export function insertMessage(
     db.prepare(
       'INSERT INTO messages (conversation_id, sender_user_id, body, image_path) VALUES (?, ?, ?, ?)',
     ).run(conversationId, senderUserId, body, imagePath);
+    db.prepare("UPDATE conversations SET updated_at = datetime('now') WHERE id = ?").run(
+      conversationId,
+    );
+  });
+  tx();
+}
+
+export function insertProductReferenceIfNew(
+  conversationId: number,
+  senderUserId: number,
+  productId: number,
+): void {
+  const last = db
+    .prepare(
+      'SELECT product_id FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 1',
+    )
+    .get(conversationId) as { product_id: number | null } | undefined;
+  if (last?.product_id === productId) return;
+
+  const tx = db.transaction(() => {
+    db.prepare(
+      'INSERT INTO messages (conversation_id, sender_user_id, body, product_id) VALUES (?, ?, ?, ?)',
+    ).run(conversationId, senderUserId, '', productId);
     db.prepare("UPDATE conversations SET updated_at = datetime('now') WHERE id = ?").run(
       conversationId,
     );

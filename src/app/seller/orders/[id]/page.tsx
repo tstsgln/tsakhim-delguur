@@ -7,7 +7,7 @@ import { getOrder, getOrderItems, autoReleaseStaleOrders, COMMISSION_RATE_BPS } 
 import { formatPrice } from '@/lib/data';
 import { orderStatusLabel, orderStatusColor, formatOrderDate } from '@/lib/order-format';
 import { sellerMarkShipped } from '@/app/actions/orders';
-import type { SellerRow } from '@/lib/types';
+import { getStoreForUser } from '@/lib/seller-stores';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +18,6 @@ interface PageProps {
 export default async function SellerOrderDetailPage({ params }: PageProps) {
   const user = await getSessionUser();
   if (!user) redirect('/login');
-  const seller = db
-    .prepare('SELECT * FROM sellers WHERE user_id = ?')
-    .get(user.id) as SellerRow | undefined;
-  if (!seller) redirect('/sell');
 
   const { id } = await params;
   const orderId = Number(id);
@@ -29,7 +25,9 @@ export default async function SellerOrderDetailPage({ params }: PageProps) {
 
   autoReleaseStaleOrders();
   const order = getOrder(orderId);
-  if (!order || order.seller_id !== seller.id) notFound();
+  if (!order) notFound();
+  const seller = getStoreForUser(user.id, order.seller_id);
+  if (!seller) notFound();
   if (order.status === 'pending_payment') notFound();
 
   const items = getOrderItems(orderId);
@@ -39,7 +37,7 @@ export default async function SellerOrderDetailPage({ params }: PageProps) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <Link href="/seller/orders" className="text-sm text-muted hover:text-primary mb-3 inline-block">
+      <Link href={`/seller/orders?store=${seller.id}`} className="text-sm text-muted hover:text-primary mb-3 inline-block">
         ← Захиалгууд
       </Link>
 

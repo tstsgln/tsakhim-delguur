@@ -1,34 +1,49 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import SellerForm from './SellerForm';
 
 export default async function SellPage() {
   const user = await getSessionUser();
-  if (user) {
-    const existing = db.prepare('SELECT id FROM sellers WHERE user_id = ?').get(user.id);
-    if (existing) redirect('/seller/dashboard');
-  }
+  const existingCount = user
+    ? (db.prepare('SELECT COUNT(*) AS n FROM sellers WHERE user_id = ?').get(user.id) as { n: number }).n
+    : 0;
+  const isAdditional = existingCount > 0;
 
   return (
     <div>
       {/* Hero */}
-      <section className="bg-gradient-to-r from-primary to-primary-dark text-white py-16">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-4">Өөрийн бүтээлээ зараарай</h1>
-          <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-            Монголын хамгийн том гар урлалын зах зээлд нэгдэж, мянга мянган худалдан авагчдад хүрээрэй.
-          </p>
-          <a
-            href="#register"
-            className="inline-block bg-white text-primary font-semibold px-10 py-3 rounded-lg hover:bg-gray-100 transition-colors text-lg"
-          >
-            Бүртгүүлэх
-          </a>
-        </div>
-      </section>
+      {!isAdditional ? (
+        <section className="bg-gradient-to-r from-primary to-primary-dark text-white py-16">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <h1 className="text-4xl font-bold mb-4">Өөрийн бүтээлээ зараарай</h1>
+            <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+              Монголын хамгийн том гар урлалын зах зээлд нэгдэж, мянга мянган худалдан авагчдад хүрээрэй.
+            </p>
+            <a
+              href="#register"
+              className="inline-block bg-white text-primary font-semibold px-10 py-3 rounded-lg hover:bg-gray-100 transition-colors text-lg"
+            >
+              Бүртгүүлэх
+            </a>
+          </div>
+        </section>
+      ) : (
+        <section className="bg-surface border-b border-border py-10">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            <h1 className="text-3xl font-bold mb-2">Шинэ дэлгүүр нээх</h1>
+            <p className="text-muted text-sm mb-3">
+              Та одоо {existingCount} дэлгүүртэй байна. Шинэ дэлгүүр доорх формоор үүсгэнэ.
+            </p>
+            <Link href="/seller/dashboard" className="text-sm text-primary hover:underline">
+              ← Одоогийн дэлгүүр(үүд) рүү буцах
+            </Link>
+          </div>
+        </section>
+      )}
 
+      {!isAdditional && (
+      <>
       {/* Steps */}
       <section className="max-w-5xl mx-auto px-4 py-16">
         <h2 className="text-2xl font-bold text-center mb-12">Хэрхэн эхлэх вэ?</h2>
@@ -76,10 +91,14 @@ export default async function SellPage() {
           </div>
         </div>
       </section>
+      </>
+      )}
 
       {/* Seller form */}
       <section id="register" className="max-w-2xl mx-auto px-4 py-16">
-        <h2 className="text-2xl font-bold text-center mb-8">Борлуулагчийн бүртгэл</h2>
+        <h2 className="text-2xl font-bold text-center mb-8">
+          {isAdditional ? 'Шинэ дэлгүүрийн мэдээлэл' : 'Борлуулагчийн бүртгэл'}
+        </h2>
         {!user ? (
           <div className="bg-surface border border-border rounded-xl p-8 text-center">
             <p className="text-muted mb-4">Борлуулагч болохын тулд эхлээд нэвтэрнэ үү.</p>
