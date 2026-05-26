@@ -17,6 +17,12 @@ import {
   type CartLine,
 } from '@/lib/orders-db';
 import { isAdmin } from '@/lib/admin';
+import {
+  notifyNewOrder,
+  notifyOrderPaid,
+  notifyOrderShipped,
+  notifyOrderReceived,
+} from '@/lib/order-notifications';
 
 const CheckoutSchema = z.object({
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
@@ -87,6 +93,10 @@ export async function checkout(_state: CheckoutState, formData: FormData): Promi
     return { message: err instanceof Error ? err.message : 'Захиалга үүсгэхэд алдаа гарлаа' };
   }
 
+  for (const orderId of orderIds) {
+    notifyNewOrder(orderId);
+  }
+
   revalidatePath('/purchases');
   return { success: true, orderIds };
 }
@@ -102,7 +112,8 @@ export async function adminMarkPaid(formData: FormData) {
   await requireAdmin();
   const orderId = Number(formData.get('orderId'));
   if (!Number.isInteger(orderId) || orderId <= 0) return;
-  markPaid(orderId);
+  const result = markPaid(orderId);
+  if (result.ok) notifyOrderPaid(orderId);
   revalidatePath('/admin/orders');
   revalidatePath('/purchases');
   revalidatePath(`/purchases/${orderId}`);
@@ -114,7 +125,8 @@ export async function sellerMarkShipped(formData: FormData) {
   if (!user) redirect('/login');
   const orderId = Number(formData.get('orderId'));
   if (!Number.isInteger(orderId) || orderId <= 0) return;
-  markShipped(orderId, user.id);
+  const result = markShipped(orderId, user.id);
+  if (result.ok) notifyOrderShipped(orderId);
   revalidatePath('/seller/orders');
   revalidatePath(`/seller/orders/${orderId}`);
   revalidatePath('/purchases');
@@ -126,7 +138,8 @@ export async function buyerConfirmReceived(formData: FormData) {
   if (!user) redirect('/login');
   const orderId = Number(formData.get('orderId'));
   if (!Number.isInteger(orderId) || orderId <= 0) return;
-  confirmReceivedByBuyer(orderId, user.id);
+  const result = confirmReceivedByBuyer(orderId, user.id);
+  if (result.ok) notifyOrderReceived(orderId);
   revalidatePath('/purchases');
   revalidatePath(`/purchases/${orderId}`);
   revalidatePath('/seller/orders');

@@ -8,20 +8,125 @@ import { categories } from '@/lib/data';
 import type { SessionUser } from '@/lib/types';
 import { logout } from '@/app/actions/auth';
 
+const ICON_SVG_PROPS = {
+  width: 26,
+  height: 26,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.5,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
+
+function BellIcon() {
+  return (
+    <svg {...ICON_SVG_PROPS} aria-hidden>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
+
+function HeartIcon() {
+  return (
+    <svg {...ICON_SVG_PROPS} aria-hidden>
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z" />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg {...ICON_SVG_PROPS} aria-hidden>
+      <circle cx="9" cy="21" r="1" />
+      <circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg {...ICON_SVG_PROPS} aria-hidden>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
 interface HeaderProps {
   user: SessionUser | null;
   isSeller: boolean;
   unreadCount: number;
+  notificationCount: number;
   isAdmin: boolean;
 }
 
-export default function Header({ user, isSeller, unreadCount: initialUnread, isAdmin }: HeaderProps) {
+interface NotificationItem {
+  id: number;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+const NOTIF_ICON: Record<string, string> = {
+  order_placed_seller: '🎉',
+  order_paid_buyer: '✓',
+  order_paid_seller: '💰',
+  order_shipped_buyer: '📦',
+  order_received_seller: '🎁',
+  order_cancelled_seller: '✕',
+};
+
+function formatRelativeTime(iso: string): string {
+  const date = new Date(iso + 'Z');
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSec < 60) return 'дөнгөж сая';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)} мин`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} цаг`;
+  if (diffSec < 604800) return `${Math.floor(diffSec / 86400)} өдөр`;
+  return date.toLocaleDateString('mn-MN', { month: '2-digit', day: '2-digit' });
+}
+
+export default function Header({
+  user,
+  isSeller,
+  unreadCount: initialUnread,
+  notificationCount: initialNotifs,
+  isAdmin,
+}: HeaderProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnread);
+  const [notificationCount, setNotificationCount] = useState(initialNotifs);
   const router = useRouter();
 
   useEffect(() => {
     setUnreadCount(initialUnread);
   }, [initialUnread]);
+
+  useEffect(() => {
+    setNotificationCount(initialNotifs);
+  }, [initialNotifs]);
 
   useEffect(() => {
     if (!user) return;
@@ -30,30 +135,60 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
     }
     const tick = async () => {
       try {
-        const res = await fetch('/api/unread', { cache: 'no-store' });
-        if (!res.ok) return;
-        const data = (await res.json()) as { count: number };
-        setUnreadCount(prev => {
-          if (data.count > prev) {
-            const delta = data.count - prev;
-            if (
-              typeof window !== 'undefined' &&
-              'Notification' in window &&
-              Notification.permission === 'granted'
-            ) {
-              try {
-                new Notification('Шинэ зурвас', {
-                  body: delta > 1 ? `${delta} шинэ зурвас ирлээ` : 'Танд шинэ зурвас ирлээ',
-                  tag: 'unread-count',
-                });
-              } catch {
-                // ignore
+        const [msgRes, notifRes] = await Promise.all([
+          fetch('/api/unread', { cache: 'no-store' }),
+          fetch('/api/notifications/unread', { cache: 'no-store' }),
+        ]);
+
+        if (msgRes.ok) {
+          const data = (await msgRes.json()) as { count: number };
+          setUnreadCount(prev => {
+            if (data.count > prev) {
+              const delta = data.count - prev;
+              if (
+                typeof window !== 'undefined' &&
+                'Notification' in window &&
+                Notification.permission === 'granted'
+              ) {
+                try {
+                  new Notification('Шинэ зурвас', {
+                    body: delta > 1 ? `${delta} шинэ зурвас ирлээ` : 'Танд шинэ зурвас ирлээ',
+                    tag: 'unread-count',
+                  });
+                } catch {
+                  // ignore
+                }
               }
+              router.refresh();
             }
-            router.refresh();
-          }
-          return data.count;
-        });
+            return data.count;
+          });
+        }
+
+        if (notifRes.ok) {
+          const data = (await notifRes.json()) as { count: number };
+          setNotificationCount(prev => {
+            if (data.count > prev) {
+              const delta = data.count - prev;
+              if (
+                typeof window !== 'undefined' &&
+                'Notification' in window &&
+                Notification.permission === 'granted'
+              ) {
+                try {
+                  new Notification('Шинэ мэдэгдэл', {
+                    body: delta > 1 ? `${delta} шинэ мэдэгдэл ирлээ` : 'Танд шинэ мэдэгдэл ирлээ',
+                    tag: 'notif-count',
+                  });
+                } catch {
+                  // ignore
+                }
+              }
+              router.refresh();
+            }
+            return data.count;
+          });
+        }
       } catch {
         // ignore
       }
@@ -66,8 +201,12 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoryDropdown, setCategoryDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
+  const [notifDropdown, setNotifDropdown] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!userDropdown) return;
@@ -90,6 +229,37 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [categoryDropdown]);
+
+  useEffect(() => {
+    if (!notifDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (notifMenuRef.current && !notifMenuRef.current.contains(e.target as Node)) {
+        setNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [notifDropdown]);
+
+  const openNotifDropdown = async () => {
+    setNotifDropdown(true);
+    setNotifLoading(true);
+    try {
+      const res = await fetch('/api/notifications/list', { cache: 'no-store' });
+      if (res.ok) {
+        const data = (await res.json()) as { notifications: NotificationItem[] };
+        setNotifications(data.notifications);
+      }
+      if (notificationCount > 0) {
+        await fetch('/api/notifications/mark-read', { method: 'POST' });
+        setNotificationCount(0);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setNotifLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,9 +292,10 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
               />
               <button
                 type="submit"
-                className="bg-primary text-white px-6 py-2.5 rounded-r-lg hover:bg-primary-dark transition-colors"
+                aria-label="Хайх"
+                className="bg-primary text-white px-5 py-2.5 rounded-r-lg hover:bg-primary-dark transition-colors flex items-center justify-center"
               >
-                🔍
+                <SearchIcon />
               </button>
             </div>
           </form>
@@ -135,16 +306,18 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
               <div ref={userMenuRef} className="relative hidden md:block">
                 <button
                   onClick={() => setUserDropdown(v => !v)}
-                  className="flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors relative"
+                  aria-label={user.name}
+                  className="flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
                 >
-                  <span className="text-xl">👤</span>
-                  <span>{user.name}</span>
-                  <span className="text-xs">▾</span>
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
+                  <span className="relative">
+                    <UserIcon />
+                    {unreadCount + notificationCount > 0 && (
+                      <span className="absolute -top-1 -right-1.5 bg-primary text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold ring-2 ring-surface">
+                        {unreadCount + notificationCount > 9 ? '9+' : unreadCount + notificationCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11px] font-medium">Профайл</span>
                 </button>
                 {userDropdown && (
                   <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-2 w-60 z-50">
@@ -206,28 +379,122 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
                 )}
               </div>
             ) : (
-              <Link href="/login" className="hidden md:flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors">
-                <span className="text-xl">👤</span>
-                <span>Нэвтрэх</span>
+              <Link
+                href="/login"
+                className="hidden md:flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
+              >
+                <UserIcon />
+                <span className="text-[11px] font-medium">Нэвтрэх</span>
               </Link>
             )}
-            <Link href="/favorites" className="hidden md:flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors">
-              <span className="text-xl">♡</span>
+            {user && (
+              <div ref={notifMenuRef} className="relative hidden md:block">
+                <button
+                  onClick={() => (notifDropdown ? setNotifDropdown(false) : openNotifDropdown())}
+                  aria-label="Мэдэгдэл"
+                  className="flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
+                >
+                  <span className="relative">
+                    <BellIcon />
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-1 -right-1.5 bg-primary text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold ring-2 ring-surface">
+                        {notificationCount > 9 ? '9+' : notificationCount}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[11px] font-medium">Мэдэгдэл</span>
+                </button>
+                {notifDropdown && (
+                  <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg w-80 z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                      <span className="text-sm font-semibold">Мэдэгдэл</span>
+                    </div>
+                    <div className="max-h-[420px] overflow-y-auto">
+                      {notifLoading && notifications.length === 0 ? (
+                        <div className="px-4 py-8 text-center text-sm text-muted">Уншиж байна...</div>
+                      ) : notifications.length === 0 ? (
+                        <div className="px-4 py-10 text-center text-sm text-muted">
+                          <div className="text-3xl mb-2">🔕</div>
+                          Мэдэгдэл алга байна
+                        </div>
+                      ) : (
+                        notifications.map(n => {
+                          const isUnread = n.read_at === null;
+                          const inner = (
+                            <div
+                              className={`flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-primary-light/10 transition-colors ${
+                                isUnread ? 'bg-primary-light/5' : ''
+                              }`}
+                            >
+                              <span className="text-xl flex-shrink-0 leading-tight">
+                                {NOTIF_ICON[n.type] ?? '🔔'}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm leading-snug ${isUnread ? 'font-semibold' : 'font-medium text-muted'}`}>
+                                  {n.title}
+                                </p>
+                                {n.body && (
+                                  <p className="text-xs text-muted mt-0.5 line-clamp-2">{n.body}</p>
+                                )}
+                                <p className="text-[11px] text-muted mt-1">{formatRelativeTime(n.created_at)}</p>
+                              </div>
+                              {isUnread && (
+                                <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1.5" aria-hidden />
+                              )}
+                            </div>
+                          );
+                          return n.link ? (
+                            <Link key={n.id} href={n.link} onClick={() => setNotifDropdown(false)} className="block">
+                              {inner}
+                            </Link>
+                          ) : (
+                            <div key={n.id}>{inner}</div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <Link
+              href="/favorites"
+              className="hidden md:flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
+            >
+              <HeartIcon />
+              <span className="text-[11px] font-medium">Хадгалсан</span>
             </Link>
-            <Link href="/cart" className="flex items-center gap-1 text-sm text-muted hover:text-foreground transition-colors relative">
-              <span className="text-xl">🛒</span>
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-              <span className="hidden md:inline">Сагс</span>
+            <Link
+              href="/cart"
+              className="flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
+            >
+              <span className="relative">
+                <CartIcon />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1.5 bg-primary text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold ring-2 ring-surface">
+                    {totalItems > 9 ? '9+' : totalItems}
+                  </span>
+                )}
+              </span>
+              <span className="text-[11px] font-medium">Сагс</span>
             </Link>
             <button
-              className="md:hidden text-2xl"
+              className="md:hidden w-10 h-10 flex items-center justify-center rounded-full text-primary hover:text-primary-dark hover:bg-primary-light/30 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Цэс"
             >
-              {mobileMenuOpen ? '✕' : '☰'}
+              {mobileMenuOpen ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -242,7 +509,7 @@ export default function Header({ user, isSeller, unreadCount: initialUnread, isA
               placeholder="Бүтээгдэхүүн хайх..."
               className="flex-1 border border-border rounded-l-lg px-3 py-2 focus:outline-none focus:border-primary text-sm"
             />
-            <button type="submit" className="bg-primary text-white px-4 py-2 rounded-r-lg">🔍</button>
+            <button type="submit" aria-label="Хайх" className="bg-primary text-white px-4 py-2 rounded-r-lg flex items-center justify-center"><SearchIcon /></button>
           </div>
         </form>
       </div>
