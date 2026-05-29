@@ -12,6 +12,7 @@ import StoreSwitcher from '../StoreSwitcher';
 
 interface ProductListItem extends ProductRow {
   cover_image: string | null;
+  archived_at: string | null;
 }
 
 interface PageProps {
@@ -113,8 +114,15 @@ export default async function SellerDashboard({ searchParams }: PageProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {products.map(p => (
-            <div key={p.id} className="bg-surface border border-border rounded-xl p-3 flex flex-col sm:flex-row gap-4">
+          {products.map(p => {
+            const isArchived = p.archived_at !== null;
+            return (
+            <div
+              key={p.id}
+              className={`bg-surface border rounded-xl p-3 flex flex-col sm:flex-row gap-4 ${
+                isArchived ? 'border-dashed border-border opacity-70' : 'border-border'
+              }`}
+            >
               <div className="flex gap-3 flex-1 min-w-0">
                 <div className="w-20 h-20 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0 relative">
                   {p.cover_image ? (
@@ -130,9 +138,16 @@ export default async function SellerDashboard({ searchParams }: PageProps) {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/product/${p.id}`} className="font-medium text-sm hover:text-primary truncate block">
-                    {p.name}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/product/${p.id}`} className="font-medium text-sm hover:text-primary truncate">
+                      {p.name}
+                    </Link>
+                    {isArchived && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-border text-muted whitespace-nowrap">
+                        Архивласан
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted truncate mb-1">{categoryName(p.category)}</p>
                   <p className="text-sm font-semibold text-primary">{formatPrice(p.price)}</p>
                 </div>
@@ -141,9 +156,11 @@ export default async function SellerDashboard({ searchParams }: PageProps) {
                 productId={p.id}
                 stockQuantity={p.stock_quantity}
                 acceptCustomOrders={p.accept_custom_orders === 1}
+                archived={isArchived}
               />
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

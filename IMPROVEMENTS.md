@@ -18,7 +18,7 @@
 ## 🧪 Найдвартай байдал
 
 - [x] **7. Тест нэмэх** — vitest суулгав; `orders-db.test.ts` 12 тест (commission бүхэл тоо, stock decrement/restore, escrow release балланс+ledger, markPaid/Shipped эрх+төлөв, payout request/complete/reject). `db.ts` нь `SQLITE_DB_PATH` env уншдаг болов (тест :memory: ашиглана). `npm test`. — **M** ✓ ДУУССАН
-- [ ] **8. Бүтээгдэхүүн soft-delete** — hard-delete захиалгын түүх SET NULL болгож, зургийн файл орхино. `deleted_at` нэмэх. — **M**
+- [x] **8. Бүтээгдэхүүн архивлах (soft-delete)** — `archived_at` багана (schema v18); архивласан бараа бүх buyer-facing query-ээс (listing/detail/store/search/counts/sitemap) хасагдана; seller dashboard-д архивлах/сэргээх товч + шошго; захиалгын түүх (order_items snapshot) хөндөгдөхгүй. Урьд нь устгах функц огт байгаагүй. `products-db.test.ts` 3 тест. — **M** ✓ ДУУССАН
 - [x] **9. Имэйл алдааг лог хийх** — `failed_emails` хүснэгт (schema v17); `sendEmail` алдааг төвлөрүүлж бичээд re-throw; бүх имэйлд context (signup/resend/new-order); admin самбарт "Илгээгдээгүй имэйл" хэсэг + "Шийдсэн" товч; `email-log.test.ts` 4 тест. — **S** ✓ ДУУССАН
 
 ## 🛒 Feature / UX

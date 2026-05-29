@@ -97,12 +97,16 @@ function toProduct(row: JoinedRow): Product {
 }
 
 export function getAllProducts(): Product[] {
-  const rows = db.prepare(`${BASE_QUERY} ORDER BY p.created_at DESC`).all() as JoinedRow[];
+  const rows = db
+    .prepare(`${BASE_QUERY} WHERE p.archived_at IS NULL ORDER BY p.created_at DESC`)
+    .all() as JoinedRow[];
   return rows.map(toProduct);
 }
 
 export function getProductById(id: number): Product | null {
-  const row = db.prepare(`${BASE_QUERY} WHERE p.id = ?`).get(id) as JoinedRow | undefined;
+  const row = db
+    .prepare(`${BASE_QUERY} WHERE p.id = ? AND p.archived_at IS NULL`)
+    .get(id) as JoinedRow | undefined;
   return row ? toProduct(row) : null;
 }
 
@@ -136,7 +140,7 @@ const DETAIL_QUERY = `
     (SELECT COUNT(*) FROM reviews WHERE product_id = p.id) AS review_count
   FROM products p
   JOIN sellers s ON s.id = p.seller_id
-  WHERE p.id = ?
+  WHERE p.id = ? AND p.archived_at IS NULL
 `;
 
 export function getProductDetail(id: number): ProductDetail | null {
@@ -190,7 +194,7 @@ export function getSellerStore(id: number): SellerStore | null {
 
 export function getProductsBySeller(sellerId: number): Product[] {
   const rows = db
-    .prepare(`${BASE_QUERY} WHERE s.id = ? ORDER BY p.created_at DESC`)
+    .prepare(`${BASE_QUERY} WHERE s.id = ? AND p.archived_at IS NULL ORDER BY p.created_at DESC`)
     .all(sellerId) as JoinedRow[];
   return rows.map(toProduct);
 }
@@ -209,7 +213,7 @@ export function searchStores(query: string, limit = 12): StoreSearchResult[] {
   return db
     .prepare(
       `SELECT s.id, s.store_name AS storeName, s.location,
-              (SELECT COUNT(*) FROM products p WHERE p.seller_id = s.id) AS productCount
+              (SELECT COUNT(*) FROM products p WHERE p.seller_id = s.id AND p.archived_at IS NULL) AS productCount
        FROM sellers s
        WHERE LOWER(s.store_name) LIKE LOWER(?)
        ORDER BY productCount DESC, s.created_at DESC
@@ -225,7 +229,7 @@ export interface SitemapEntry {
 
 export function getSitemapProducts(): SitemapEntry[] {
   return db
-    .prepare('SELECT id, created_at AS updatedAt FROM products ORDER BY id ASC')
+    .prepare('SELECT id, created_at AS updatedAt FROM products WHERE archived_at IS NULL ORDER BY id ASC')
     .all() as SitemapEntry[];
 }
 
@@ -237,7 +241,7 @@ export function getSitemapStores(): SitemapEntry[] {
 
 export function getCategoryCounts(): Record<string, number> {
   const rows = db
-    .prepare('SELECT category, COUNT(*) AS count FROM products GROUP BY category')
+    .prepare('SELECT category, COUNT(*) AS count FROM products WHERE archived_at IS NULL GROUP BY category')
     .all() as { category: string; count: number }[];
   const out: Record<string, number> = {};
   for (const r of rows) out[r.category] = r.count;

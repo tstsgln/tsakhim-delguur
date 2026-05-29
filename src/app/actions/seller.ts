@@ -185,6 +185,33 @@ export async function updateProductInventory(formData: FormData) {
   revalidatePath(`/product/${productId}`);
 }
 
+// Soft-delete: archive hides a product from listings/search/detail but keeps it
+// for order history (order_items hold their own name/price/image snapshot).
+export async function setProductArchived(formData: FormData) {
+  const user = await getSessionUser();
+  if (!user) return;
+
+  const productId = Number(formData.get('productId'));
+  if (!Number.isInteger(productId) || productId <= 0) return;
+
+  const owned = db
+    .prepare(
+      `SELECT 1 FROM products p
+       JOIN sellers s ON s.id = p.seller_id
+       WHERE p.id = ? AND s.user_id = ?`,
+    )
+    .get(productId, user.id);
+  if (!owned) return;
+
+  const archive = formData.get('archived') === 'on';
+  db.prepare(
+    `UPDATE products SET archived_at = ${archive ? "datetime('now')" : 'NULL'} WHERE id = ?`,
+  ).run(productId);
+
+  revalidatePath('/seller/dashboard');
+  revalidatePath(`/product/${productId}`);
+}
+
 export async function createProduct(_state: ProductState, formData: FormData): Promise<ProductState> {
   const submittedValues: ProductFormValues = {
     name: String(formData.get('name') ?? ''),

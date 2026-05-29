@@ -1,19 +1,29 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { updateProductInventory } from '@/app/actions/seller';
+import { updateProductInventory, setProductArchived } from '@/app/actions/seller';
 
 interface Props {
   productId: number;
   stockQuantity: number;
   acceptCustomOrders: boolean;
+  archived: boolean;
 }
 
-export default function ProductInventoryRow({ productId, stockQuantity, acceptCustomOrders }: Props) {
+export default function ProductInventoryRow({ productId, stockQuantity, acceptCustomOrders, archived }: Props) {
   const [stock, setStock] = useState(stockQuantity);
   const [accept, setAccept] = useState(acceptCustomOrders);
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
+
+  const toggleArchived = () => {
+    const fd = new FormData();
+    fd.set('productId', String(productId));
+    fd.set('archived', archived ? 'off' : 'on');
+    startTransition(() => {
+      setProductArchived(fd);
+    });
+  };
 
   const submitStock = (newStock: number) => {
     if (newStock < 0) return;
@@ -101,6 +111,19 @@ export default function ProductInventoryRow({ productId, stockQuantity, acceptCu
           Дууссан үед нэмэлт захиалга авна
         </span>
       </label>
+
+      <button
+        type="button"
+        onClick={toggleArchived}
+        disabled={pending}
+        className={`text-xs px-3 py-1 rounded-md border transition-colors disabled:opacity-40 ${
+          archived
+            ? 'border-primary text-primary hover:bg-primary-light/20'
+            : 'border-border text-muted hover:bg-primary-light/20'
+        }`}
+      >
+        {archived ? '♻️ Дэлгүүрт буцаах' : '🗄️ Архивлах'}
+      </button>
     </div>
   );
 }
