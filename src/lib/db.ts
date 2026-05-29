@@ -4,9 +4,12 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const dbDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-const dbPath = path.join(dbDir, 'app.db');
+// Allow tests (or alternate environments) to point at an isolated database.
+// In production SQLITE_DB_PATH is unset, so the default file path is used.
+const dbPath = process.env.SQLITE_DB_PATH ?? path.join(dbDir, 'app.db');
+
+if (dbPath !== ':memory:' && !fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 declare global {
   // eslint-disable-next-line no-var

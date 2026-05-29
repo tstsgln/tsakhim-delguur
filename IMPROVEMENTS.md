@@ -17,7 +17,7 @@
 
 ## 🧪 Найдвартай байдал
 
-- [ ] **7. Тест нэмэх** — мөнгө/захиалга/ledger логик хамгийн эрсдэлтэй, vitest. — **M**
+- [x] **7. Тест нэмэх** — vitest суулгав; `orders-db.test.ts` 12 тест (commission бүхэл тоо, stock decrement/restore, escrow release балланс+ledger, markPaid/Shipped эрх+төлөв, payout request/complete/reject). `db.ts` нь `SQLITE_DB_PATH` env уншдаг болов (тест :memory: ашиглана). `npm test`. — **M** ✓ ДУУССАН
 - [ ] **8. Бүтээгдэхүүн soft-delete** — hard-delete захиалгын түүх SET NULL болгож, зургийн файл орхино. `deleted_at` нэмэх. — **M**
 - [ ] **9. Имэйл алдааг лог хийх** — fire-and-forget; Resend амжилтгүй бол чимээгүй алдагдана. — **S**
 
