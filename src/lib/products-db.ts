@@ -192,6 +192,31 @@ export function getSellerStore(id: number): SellerStore | null {
   };
 }
 
+export interface SellerStats {
+  rating: number; // average review rating across the seller's products (0 if none)
+  reviewCount: number;
+  salesCount: number; // completed orders
+}
+
+export function getSellerStats(sellerId: number): SellerStats {
+  const reviews = db
+    .prepare(
+      `SELECT COALESCE(AVG(r.rating), 0) AS rating, COUNT(*) AS cnt
+       FROM reviews r
+       JOIN products p ON p.id = r.product_id
+       WHERE p.seller_id = ?`,
+    )
+    .get(sellerId) as { rating: number; cnt: number };
+  const sales = db
+    .prepare("SELECT COUNT(*) AS c FROM orders WHERE seller_id = ? AND status = 'completed'")
+    .get(sellerId) as { c: number };
+  return {
+    rating: reviews.rating,
+    reviewCount: reviews.cnt,
+    salesCount: sales.c,
+  };
+}
+
 export function getProductsBySeller(sellerId: number): Product[] {
   const rows = db
     .prepare(`${BASE_QUERY} WHERE s.id = ? AND p.archived_at IS NULL ORDER BY p.created_at DESC`)

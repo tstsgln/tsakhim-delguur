@@ -2,7 +2,7 @@ import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProductDetail, getAllProducts } from '@/lib/products-db';
+import { getProductDetail, getAllProducts, getSellerStats } from '@/lib/products-db';
 import { categories } from '@/lib/data';
 import { getSessionUser } from '@/lib/session';
 import { db } from '@/lib/db';
@@ -119,7 +119,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         <span className="text-foreground">{product.name}</span>
       </nav>
 
-      <ProductDetail product={product} seller={seller} canMessage={!isOwnStore} />
+      <ProductDetail product={product} seller={seller} sellerStats={getSellerStats(seller.id)} canMessage={!isOwnStore} />
 
       <ReviewsSection productId={numericId} />
 

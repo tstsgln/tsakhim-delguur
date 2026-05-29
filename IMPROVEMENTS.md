@@ -26,7 +26,7 @@
 - [ ] **10. Төлбөрийн урсгалыг тодорхой болгох** — checkout яаж төлөхийг хэлдэггүй. ⏸️ **ХОЙШЛУУЛСАН** — qPay merchant авсны дараа qPay интеграцитай хамт хийнэ. — **S→M**
 - [x] **11. Pagination** — `/products`-д numbered pagination (24/хуудас, client-side, шүүлт өөрчлөгдөхөд reset, ellipsis цонх, scroll-to-top). PAGE_SIZE=3 түр тохируулж localhost дээр баталгаажсан. ⚠️ Тэмдэглэл: client-side тул бүх бараа одоо ч client руу дамждаг — каталог олон мянга болоход server-side pagination руу шилжих хэрэгтэй. — **S-M** ✓ ДУУССАН
 - [ ] **12. Favorites-г DB-д хадгалах** — одоо localStorage-д л, sync хийгддэггүй. — **M**
-- [ ] **13. Борлуулагчийн итгэлийн тэмдэг** — listing дээр rating / verified badge. — **M**
+- [x] **13. Борлуулагчийн trust badge** — `getSellerStats` (дундаж rating, үнэлгээний тоо, дууссан борлуулалт); `SellerTrustBadge` компонент (★ rating, 📦 борлуулалт, ⭐ Шилдэг борлуулагч, 🌱 Шинэ дэлгүүр); store ба product detail-д харуулна. "Made by"→"Худалдагч". `products-db.test.ts`-д 2 тест. — **M** ✓ ДУУССАН
 
 ---
 

@@ -7,7 +7,9 @@ import { formatPrice } from '@/lib/data';
 import { useCart } from '@/lib/cart-context';
 import PlaceholderImage from '@/components/PlaceholderImage';
 import { startConversationWithSeller } from '@/app/actions/chat';
+import SellerTrustBadge from '@/components/SellerTrustBadge';
 import type { Product } from '@/lib/types';
+import type { SellerStats } from '@/lib/products-db';
 
 interface Seller {
   id: number;
@@ -21,10 +23,11 @@ interface Seller {
 interface Props {
   product: Product;
   seller: Seller;
+  sellerStats: SellerStats;
   canMessage: boolean;
 }
 
-export default function ProductDetail({ product, seller, canMessage }: Props) {
+export default function ProductDetail({ product, seller, sellerStats, canMessage }: Props) {
   const { addToCart, items } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
@@ -168,7 +171,7 @@ export default function ProductDetail({ product, seller, canMessage }: Props) {
 
       {/* Seller info at bottom */}
       <div className="bg-surface border border-border rounded-2xl p-6 mb-12">
-        <p className="text-xs text-muted uppercase tracking-wider mb-3">Made by</p>
+        <p className="text-xs text-muted uppercase tracking-wider mb-3">Худалдагч</p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Link
             href={`/store/${seller.id}`}
@@ -185,6 +188,7 @@ export default function ProductDetail({ product, seller, canMessage }: Props) {
                 📍 {seller.location}
                 {joinedYear ? ` · ${joinedYear} оноос` : ''}
               </p>
+              <SellerTrustBadge stats={sellerStats} className="mt-1.5" />
             </div>
           </Link>
           <div className="flex gap-2 flex-wrap">

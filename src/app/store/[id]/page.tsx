@@ -3,11 +3,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
-import { getSellerStore, getProductsBySeller } from '@/lib/products-db';
+import { getSellerStore, getProductsBySeller, getSellerStats } from '@/lib/products-db';
 import { getSessionUser } from '@/lib/session';
 import { db } from '@/lib/db';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
 import { startConversationWithSeller } from '@/app/actions/chat';
+import SellerTrustBadge from '@/components/SellerTrustBadge';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,6 +58,7 @@ export default async function StorePage({ params }: PageProps) {
   }
 
   const products = getProductsBySeller(numericId);
+  const stats = getSellerStats(numericId);
   const joinedYear = seller.joinedDate ? new Date(seller.joinedDate).getFullYear() : '';
 
   const user = await getSessionUser();
@@ -88,6 +90,7 @@ export default async function StorePage({ params }: PageProps) {
               📍 {seller.location}
               {joinedYear ? ` · ${joinedYear} оноос нэгдсэн` : ''}
             </p>
+            <SellerTrustBadge stats={stats} className="mt-2" />
             {seller.description && (
               <p className="text-sm text-muted mt-3 leading-relaxed max-w-3xl">{seller.description}</p>
             )}
