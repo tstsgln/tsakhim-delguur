@@ -94,7 +94,7 @@ export async function signup(_state: AuthState, formData: FormData): Promise<Aut
   const verifyUrl = `${getAppBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
   const { subject, html, text } = buildVerificationEmail(name, verifyUrl);
   try {
-    await sendEmail({ to: email, subject, html, text });
+    await sendEmail({ to: email, subject, html, text }, 'signup-verification');
   } catch (err) {
     console.error('Verification email failed to send:', err);
     return { message: 'Имэйл явуулахад алдаа гарлаа. Дахин оролдоно уу.' };

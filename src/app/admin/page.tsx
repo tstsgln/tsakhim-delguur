@@ -5,6 +5,8 @@ import { isAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { countFeedbackByStatus } from '@/lib/feedback-db';
 import { getPlatformCommissionBalance, autoReleaseStaleOrders } from '@/lib/orders-db';
+import { listFailedEmails } from '@/lib/email-log';
+import { resolveFailedEmail } from '@/app/actions/admin';
 import { formatPrice } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +35,7 @@ export default async function AdminHubPage() {
     db.prepare(`SELECT COUNT(*) AS c FROM payouts WHERE status = 'requested'`).get() as { c: number }
   ).c;
   const feedbackCounts = countFeedbackByStatus();
+  const failedEmails = listFailedEmails(20);
   const totalCommission = getPlatformCommissionBalance();
   const totalCompletedOrders = (
     db.prepare(`SELECT COUNT(*) AS c FROM orders WHERE status = 'completed'`).get() as { c: number }
@@ -100,6 +103,37 @@ export default async function AdminHubPage() {
           </Link>
         ))}
       </div>
+
+      {failedEmails.length > 0 && (
+        <section className="mt-8">
+          <h2 className="font-bold mb-3 flex items-center gap-2">
+            <span>⚠️</span> Илгээгдээгүй имэйл ({failedEmails.length})
+          </h2>
+          <div className="bg-surface border border-border rounded-2xl divide-y divide-border overflow-hidden">
+            {failedEmails.map(f => (
+              <div key={f.id} className="flex items-start justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{f.subject}</p>
+                  <p className="text-xs text-muted truncate">
+                    → {f.to_email}
+                    {f.context ? ` · ${f.context}` : ''} · {f.created_at}
+                  </p>
+                  {f.error && <p className="text-xs text-red-600 mt-1 break-all line-clamp-2">{f.error}</p>}
+                </div>
+                <form action={resolveFailedEmail} className="flex-shrink-0">
+                  <input type="hidden" name="id" value={f.id} />
+                  <button
+                    type="submit"
+                    className="text-xs px-3 py-1.5 rounded-lg border border-border hover:bg-primary-light/20 whitespace-nowrap"
+                  >
+                    Шийдсэн
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

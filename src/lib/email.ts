@@ -1,6 +1,7 @@
 import 'server-only';
+import { recordFailedEmail } from './email-log';
 
-interface SendArgs {
+export interface SendArgs {
   to: string;
   subject: string;
   html: string;
@@ -10,7 +11,12 @@ interface SendArgs {
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM ?? 'Цэцэглэн <no-reply@tsetseglen.mn>';
 
-export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<void> {
+// On failure the error is persisted to failed_emails (visible in /admin) and
+// then re-thrown so awaiting callers can still surface it to the user.
+export async function sendEmail(
+  { to, subject, html, text }: SendArgs,
+  context?: string,
+): Promise<void> {
   if (!RESEND_API_KEY) {
     console.log('───────── DEV EMAIL ─────────');
     console.log('To:     ', to);
@@ -21,18 +27,28 @@ export async function sendEmail({ to, subject, html, text }: SendArgs): Promise<
     return;
   }
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: EMAIL_FROM, to, subject, html, text }),
-  });
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: EMAIL_FROM, to, subject, html, text }),
+    });
 
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`Resend failed (${res.status}): ${detail}`);
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`Resend failed (${res.status}): ${detail}`);
+    }
+  } catch (err) {
+    recordFailedEmail({
+      to,
+      subject,
+      context: context ?? null,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
   }
 }
 

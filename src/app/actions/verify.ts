@@ -119,7 +119,7 @@ export async function resendVerification(_state: ResendState, formData: FormData
   const verifyUrl = `${getAppBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
   const { subject, html, text } = buildVerificationEmail(user.name, verifyUrl);
   try {
-    await sendEmail({ to: email, subject, html, text });
+    await sendEmail({ to: email, subject, html, text }, 'resend-verification');
   } catch (err) {
     console.error('Resend verification failed:', err);
     return { message: 'Имэйл явуулахад алдаа гарлаа. Дахин оролдоно уу.' };

@@ -1,7 +1,7 @@
 import 'server-only';
 import { db } from './db';
 import { createNotification } from './notifications-db';
-import { sendEmail, buildNewOrderEmailForSeller, getAppBaseUrl } from './email';
+import { sendEmail, buildNewOrderEmailForSeller, getAppBaseUrl, type SendArgs } from './email';
 
 interface OrderContext {
   orderId: number;
@@ -35,8 +35,10 @@ function loadContext(orderId: number): OrderContext | null {
   return row ?? null;
 }
 
-function fireEmail(promise: Promise<void>, context: string): void {
-  promise.catch(err => {
+// Fire-and-forget: sendEmail persists failures to failed_emails on its own,
+// so here we only need to keep the rejection from going unhandled.
+function fireEmail(args: SendArgs, context: string): void {
+  sendEmail(args, context).catch(err => {
     console.error(`[email-fail:${context}]`, err instanceof Error ? err.message : err);
   });
 }
@@ -63,7 +65,7 @@ export function notifyNewOrder(orderId: number): void {
     orderUrl,
   });
   fireEmail(
-    sendEmail({ to: ctx.sellerEmail, subject: email.subject, html: email.html, text: email.text }),
+    { to: ctx.sellerEmail, subject: email.subject, html: email.html, text: email.text },
     `new-order-${ctx.orderId}`,
   );
 }
