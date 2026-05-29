@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
@@ -9,6 +9,21 @@ import type { Product } from '@/lib/types';
 import type { StoreSearchResult } from '@/lib/products-db';
 
 type SortOption = 'newest' | 'price-low' | 'price-high' | 'rating' | 'popular';
+
+const PAGE_SIZE = 24;
+
+// Builds a compact page-number list with gaps, e.g. [1, '…', 4, 5, 6, '…', 12].
+function pageWindow(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages: (number | '…')[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push('…');
+  for (let p = start; p <= end; p++) pages.push(p);
+  if (end < total - 1) pages.push('…');
+  pages.push(total);
+  return pages;
+}
 
 interface Props {
   products: Product[];
@@ -65,6 +80,28 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
   }, [products, searchQuery, selectedCategory, sort, priceRange]);
 
   const currentCategory = categories.find(c => c.id === selectedCategory);
+
+  const [page, setPage] = useState(1);
+  const gridTopRef = useRef<HTMLDivElement>(null);
+  const didMountRef = useRef(false);
+
+  // Reset to the first page whenever the result set changes (filter/sort/search).
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedCategory, sort, priceRange]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Scroll the grid back into view on page change (but not on first render).
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    gridTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [currentPage]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -180,10 +217,13 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
             </section>
           )}
 
+          <div ref={gridTopRef} className="scroll-mt-32" />
           {/* Sort bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
             <p className="text-sm text-muted">
-              {filteredProducts.length} бүтээгдэхүүн олдлоо
+              {filteredProducts.length > 0
+                ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredProducts.length)} / ${filteredProducts.length} бүтээгдэхүүн`
+                : '0 бүтээгдэхүүн олдлоо'}
             </p>
             <select
               value={sort}
@@ -199,11 +239,52 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
           </div>
 
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-              {filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                {pageItems.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <nav className="flex items-center justify-center gap-1.5 mt-8" aria-label="Хуудаслалт">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 rounded-lg text-sm border border-border hover:bg-primary-light/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Өмнөх хуудас"
+                  >
+                    ←
+                  </button>
+                  {pageWindow(currentPage, totalPages).map((p, i) =>
+                    p === '…' ? (
+                      <span key={`gap-${i}`} className="px-2 text-muted">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        aria-current={p === currentPage ? 'page' : undefined}
+                        className={`min-w-[2.5rem] px-3 py-2 rounded-lg text-sm border transition-colors ${
+                          p === currentPage
+                            ? 'bg-primary text-white border-primary'
+                            : 'border-border hover:bg-primary-light/20'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 rounded-lg text-sm border border-border hover:bg-primary-light/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Дараагийн хуудас"
+                  >
+                    →
+                  </button>
+                </nav>
+              )}
+            </>
           ) : (
             <div className="text-center py-16">
               <p className="text-4xl mb-4">🔍</p>
