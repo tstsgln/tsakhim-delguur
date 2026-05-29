@@ -1,13 +1,43 @@
+import { cache } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import { getSellerStore, getProductsBySeller } from '@/lib/products-db';
 import { getSessionUser } from '@/lib/session';
 import { db } from '@/lib/db';
+import { SITE_URL, SITE_NAME } from '@/lib/site';
 import { startConversationWithSeller } from '@/app/actions/chat';
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+const getStore = cache((id: number) => getSellerStore(id));
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId) || numericId <= 0) return { title: 'Дэлгүүр олдсонгүй' };
+
+  const seller = getStore(numericId);
+  if (!seller) return { title: 'Дэлгүүр олдсонгүй' };
+
+  const description = seller.description
+    ? seller.description.slice(0, 160)
+    : `${seller.storeName} — ${seller.location} дахь гар урлалын дэлгүүр. ${SITE_NAME}.`;
+
+  return {
+    title: seller.storeName,
+    description,
+    alternates: { canonical: `/store/${numericId}` },
+    openGraph: {
+      type: 'website',
+      title: seller.storeName,
+      description,
+      url: `${SITE_URL}/store/${numericId}`,
+    },
+  };
 }
 
 export default async function StorePage({ params }: PageProps) {
@@ -15,7 +45,7 @@ export default async function StorePage({ params }: PageProps) {
   const numericId = Number(id);
   if (!Number.isInteger(numericId) || numericId <= 0) notFound();
 
-  const seller = getSellerStore(numericId);
+  const seller = getStore(numericId);
   if (!seller) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">

@@ -2,7 +2,20 @@
 
 import Link from 'next/link';
 
+const CONTACT_EMAIL = 'tstsegi22@gmail.com';
+
 export default function AboutPage() {
+  function handleContactSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const name = ((fd.get('name') as string) || '').trim();
+    const email = ((fd.get('email') as string) || '').trim();
+    const message = ((fd.get('message') as string) || '').trim();
+    const subject = encodeURIComponent(`Цэцэглэн — холбоо барих${name ? ` (${name})` : ''}`);
+    const lines = [message, '', `— ${name}`, email].filter(Boolean).join('\n');
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${encodeURIComponent(lines)}`;
+  }
+
   return (
     <div>
       {/* Hero */}
@@ -140,22 +153,23 @@ export default function AboutPage() {
             </div>
           </div>
 
-          <form onSubmit={e => e.preventDefault()} className="bg-surface border border-border rounded-xl p-6 space-y-4">
+          <form onSubmit={handleContactSubmit} className="bg-surface border border-border rounded-xl p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Нэр</label>
-              <input type="text" placeholder="Таны нэр" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+              <label htmlFor="contact-name" className="block text-sm font-medium mb-1">Нэр</label>
+              <input id="contact-name" name="name" type="text" placeholder="Таны нэр" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Имэйл</label>
-              <input type="email" placeholder="name@example.com" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
+              <label htmlFor="contact-email" className="block text-sm font-medium mb-1">Имэйл</label>
+              <input id="contact-email" name="email" type="email" placeholder="name@example.com" className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Мессеж</label>
-              <textarea rows={4} placeholder="Таны мессеж..." className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none" />
+              <label htmlFor="contact-message" className="block text-sm font-medium mb-1">Мессеж</label>
+              <textarea id="contact-message" name="message" rows={4} required placeholder="Таны мессеж..." className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none" />
             </div>
             <button type="submit" className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors">
               Илгээх
             </button>
+            <p className="text-xs text-muted text-center">Илгээх товч дарахад таны имэйл программ нээгдэнэ.</p>
           </form>
         </div>
       </section>

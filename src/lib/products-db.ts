@@ -218,6 +218,23 @@ export function searchStores(query: string, limit = 12): StoreSearchResult[] {
     .all(like, limit) as StoreSearchResult[];
 }
 
+export interface SitemapEntry {
+  id: number;
+  updatedAt: string;
+}
+
+export function getSitemapProducts(): SitemapEntry[] {
+  return db
+    .prepare('SELECT id, created_at AS updatedAt FROM products ORDER BY id ASC')
+    .all() as SitemapEntry[];
+}
+
+export function getSitemapStores(): SitemapEntry[] {
+  return db
+    .prepare('SELECT id, created_at AS updatedAt FROM sellers ORDER BY id ASC')
+    .all() as SitemapEntry[];
+}
+
 export function getCategoryCounts(): Record<string, number> {
   const rows = db
     .prepare('SELECT category, COUNT(*) AS count FROM products GROUP BY category')
