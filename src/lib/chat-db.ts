@@ -68,7 +68,10 @@ export function getConversationForUser(
   return row ?? null;
 }
 
-export function listMessages(conversationId: number): MessageRow[] {
+// Returns an empty list if `userId` is not a participant of the conversation.
+// Authorization is baked into the query so callers can't accidentally leak
+// another user's messages even if they skip a prior ownership check.
+export function listMessages(conversationId: number, userId: number): MessageRow[] {
   return db
     .prepare(
       `SELECT
@@ -84,9 +87,15 @@ export function listMessages(conversationId: number): MessageRow[] {
        FROM messages m
        LEFT JOIN products p ON p.id = m.product_id
        WHERE m.conversation_id = ?
+         AND EXISTS (
+           SELECT 1 FROM conversations c
+           JOIN sellers s ON s.id = c.seller_id
+           WHERE c.id = m.conversation_id
+             AND (c.buyer_user_id = ? OR s.user_id = ?)
+         )
        ORDER BY m.created_at ASC, m.id ASC`,
     )
-    .all(conversationId) as MessageRow[];
+    .all(conversationId, userId, userId) as MessageRow[];
 }
 
 export function insertMessage(
@@ -159,8 +168,14 @@ export function markConversationRead(conversationId: number, userId: number): vo
      SET read_at = datetime('now')
      WHERE conversation_id = ?
        AND sender_user_id != ?
-       AND read_at IS NULL`,
-  ).run(conversationId, userId);
+       AND read_at IS NULL
+       AND EXISTS (
+         SELECT 1 FROM conversations c
+         JOIN sellers s ON s.id = c.seller_id
+         WHERE c.id = messages.conversation_id
+           AND (c.buyer_user_id = ? OR s.user_id = ?)
+       )`,
+  ).run(conversationId, userId, userId, userId);
 }
 
 export function getUnreadCount(userId: number): number {

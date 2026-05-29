@@ -22,7 +22,7 @@ export default async function ConversationPage({ params }: PageProps) {
   if (!convo) notFound();
 
   markConversationRead(conversationId, user.id);
-  const messages = listMessages(conversationId);
+  const messages = listMessages(conversationId, user.id);
   const isBuyer = convo.buyer_user_id === user.id;
   const partnerName = isBuyer ? convo.store_name : convo.buyer_name;
   const partnerLink = isBuyer ? `/store/${convo.seller_id}` : null;

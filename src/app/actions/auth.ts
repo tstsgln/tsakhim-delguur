@@ -9,6 +9,15 @@ import { db } from '@/lib/db';
 import { createSession, deleteSession, getSessionUser } from '@/lib/session';
 import { generateVerificationToken } from '@/lib/verify-token';
 import { sendEmail, buildVerificationEmail, getAppBaseUrl } from '@/lib/email';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+function tooManyMessage(retryAfterSec: number): string {
+  const mins = Math.ceil(retryAfterSec / 60);
+  return `Хэт олон удаа оролдлоо. ${mins} минутын дараа дахин оролдоно уу.`;
+}
 
 const SignupSchema = z.object({
   name: z.string().trim().min(2, 'Нэр доод тал нь 2 тэмдэгт байна'),
@@ -42,6 +51,12 @@ interface UserRow {
 }
 
 export async function signup(_state: AuthState, formData: FormData): Promise<AuthState> {
+  const ip = await getClientIp();
+  const limit = rateLimit(`signup:${ip}`, 6, HOUR);
+  if (!limit.ok) {
+    return { message: tooManyMessage(limit.retryAfterSec) };
+  }
+
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('confirmPassword') ?? '');
 
@@ -89,6 +104,12 @@ export async function signup(_state: AuthState, formData: FormData): Promise<Aut
 }
 
 export async function login(_state: AuthState, formData: FormData): Promise<AuthState> {
+  const ip = await getClientIp();
+  const limit = rateLimit(`login:${ip}`, 15, 15 * MINUTE);
+  if (!limit.ok) {
+    return { message: tooManyMessage(limit.retryAfterSec) };
+  }
+
   const parsed = LoginSchema.safeParse({
     email: formData.get('email'),
     password: formData.get('password'),

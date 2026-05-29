@@ -9,6 +9,7 @@ import {
   hashVerificationToken,
 } from '@/lib/verify-token';
 import { sendEmail, buildVerificationEmail, getAppBaseUrl } from '@/lib/email';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 export type VerifyState = { message?: string } | undefined;
 
@@ -79,9 +80,15 @@ interface LatestTokenRow {
 }
 
 export async function resendVerification(_state: ResendState, formData: FormData): Promise<ResendState> {
-  const parsed = ResendSchema.safeParse({ email: formData.get('email') });
   // Generic response regardless of input to avoid leaking which emails exist.
   const generic: ResendState = { success: true, message: 'Хэрэв энэ имэйл бүртгэлтэй бол баталгаажуулах холбоос явууллаа.' };
+
+  // Per-IP cap (on top of the per-user 5-min cooldown below) to limit email-cost abuse.
+  const ip = await getClientIp();
+  const limit = rateLimit(`resend:${ip}`, 10, 60 * 60 * 1000);
+  if (!limit.ok) return generic;
+
+  const parsed = ResendSchema.safeParse({ email: formData.get('email') });
   if (!parsed.success) return generic;
 
   const { email } = parsed.data;

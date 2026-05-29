@@ -12,8 +12,8 @@
 
 ## 🔒 Аюулгүй байдал
 
-- [ ] **5. Authorization-г data layer-т суулгах** — `getOrder()`, `listLedgerForUser()`, `listMessages()`, `markConversationRead()` эзэмшил шалгадаггүй; зөвхөн page layer дээр шалгадаг тул эмзэг. `getOrderForBuyer(id, userId)` маягийн query руу. — **M**
-- [ ] **6. Login/signup rate limit** — brute-force / спам боломжтой. — **S-M**
+- [x] **5. Authorization data layer-т (defense-in-depth)** — шалгахад order/balance/messages call site бүгд аль хэдийн зөв authorize хийдэг (идэвхтэй нүх биш). `listMessages`/`markConversationRead`-д membership guard-ийг SQL-д суулгав (гишүүн биш бол хоосон/өөрчлөхгүй). — **M** ✓ ДУУССАН
+- [x] **6. Rate limiting** — `lib/rate-limit.ts` (in-memory, single PM2 process). login 15/15мин, signup 6/цаг, resend 10/цаг — IP-ээр. Логик бие даан тест хийсэн. — **S-M** ✓ ДУУССАН
 
 ## 🧪 Найдвартай байдал
 
@@ -23,7 +23,7 @@
 
 ## 🛒 Feature / UX
 
-- [ ] **10. Төлбөрийн урсгалыг тодорхой болгох** — checkout яаж төлөхийг хэлдэггүй (банк/данс/QR). — **S**
+- [ ] **10. Төлбөрийн урсгалыг тодорхой болгох** — checkout яаж төлөхийг хэлдэггүй. ⏸️ **ХОЙШЛУУЛСАН** — qPay merchant авсны дараа qPay интеграцитай хамт хийнэ. — **S→M**
 - [ ] **11. Pagination** — `/products` бүх барааг нэг дор ачаална. — **S-M**
 - [ ] **12. Favorites-г DB-д хадгалах** — одоо localStorage-д л, sync хийгддэггүй. — **M**
 - [ ] **13. Борлуулагчийн итгэлийн тэмдэг** — listing дээр rating / verified badge. — **M**
