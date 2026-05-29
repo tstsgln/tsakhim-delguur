@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/data';
 import { useCart } from '@/lib/cart-context';
+import { useFavorites } from '@/lib/favorites-context';
 import PlaceholderImage from '@/components/PlaceholderImage';
 import { startConversationWithSeller } from '@/app/actions/chat';
 import SellerTrustBadge from '@/components/SellerTrustBadge';
@@ -29,8 +30,10 @@ interface Props {
 
 export default function ProductDetail({ product, seller, sellerStats, canMessage }: Props) {
   const { addToCart, items } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
+  const favorite = isFavorite(product.id);
   const cover = product.images?.[activeImage];
   const joinedYear = seller.joinedDate ? new Date(seller.joinedDate).getFullYear() : '';
 
@@ -159,8 +162,18 @@ export default function ProductDetail({ product, seller, sellerStats, canMessage
                 🛒 Сагсанд нэмэх
               </button>
             )}
-            <button type="button" className="px-4 py-3 border border-border rounded-lg hover:bg-primary-light/20 transition-colors text-xl">
-              ♡
+            <button
+              type="button"
+              onClick={() => toggleFavorite(product)}
+              aria-pressed={favorite}
+              aria-label={favorite ? 'Хадгалснаас хасах' : 'Хадгалах'}
+              className={`px-4 py-3 border rounded-lg transition-colors text-xl ${
+                favorite
+                  ? 'border-primary text-primary bg-primary-light/20'
+                  : 'border-border hover:bg-primary-light/20'
+              }`}
+            >
+              {favorite ? '♥' : '♡'}
             </button>
           </div>
           {cartWouldExceed && !soldOut && (

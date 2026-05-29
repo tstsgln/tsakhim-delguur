@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Product } from '@/lib/types';
 import { formatPrice } from '@/lib/data';
 import { useCart } from '@/lib/cart-context';
+import { useFavorites } from '@/lib/favorites-context';
 import PlaceholderImage from './PlaceholderImage';
 
 interface ProductCardProps {
@@ -13,6 +14,8 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart, items } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorite = isFavorite(product.id);
   const discount = product.originalPrice
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
@@ -23,8 +26,8 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div className="group bg-surface rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-      <Link href={`/product/${product.id}`}>
-        <div className="relative aspect-square">
+      <div className="relative aspect-square">
+        <Link href={`/product/${product.id}`} className="block w-full h-full">
           {cover ? (
             <Image
               src={cover}
@@ -42,7 +45,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
           {discount > 0 && (
-            <span className="absolute top-2 right-2 bg-primary text-white text-xs px-2 py-1 rounded-full font-medium z-10">
+            <span className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded-full font-medium z-10">
               -{discount}%
             </span>
           )}
@@ -58,8 +61,21 @@ export default function ProductCard({ product }: ProductCardProps) {
               </span>
             </div>
           )}
-        </div>
-      </Link>
+        </Link>
+        <button
+          type="button"
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavorite(product);
+          }}
+          aria-pressed={favorite}
+          aria-label={favorite ? 'Хадгалснаас хасах' : 'Хадгалах'}
+          className="absolute top-2 right-2 z-20 w-8 h-8 rounded-full bg-surface/90 backdrop-blur flex items-center justify-center shadow-sm hover:scale-110 active:scale-95 transition-transform text-lg leading-none"
+        >
+          <span className={favorite ? 'text-primary' : 'text-muted'}>{favorite ? '♥' : '♡'}</span>
+        </button>
+      </div>
 
       <div className="p-3">
         <Link href={`/product/${product.id}`}>

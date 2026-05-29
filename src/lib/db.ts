@@ -23,7 +23,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 18;
+const SCHEMA_VERSION = 19;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -220,6 +220,14 @@ if (currentVersion < SCHEMA_VERSION) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_failed_emails_unresolved ON failed_emails(resolved_at, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS favorites (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, product_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id, created_at DESC);
   `);
 
   const sellerCols = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;

@@ -192,6 +192,18 @@ export function getSellerStore(id: number): SellerStore | null {
   };
 }
 
+export function getFavoriteProducts(userId: number): Product[] {
+  const rows = db
+    .prepare(
+      `${BASE_QUERY}
+       JOIN favorites f ON f.product_id = p.id
+       WHERE f.user_id = ? AND p.archived_at IS NULL
+       ORDER BY f.created_at DESC`,
+    )
+    .all(userId) as JoinedRow[];
+  return rows.map(toProduct);
+}
+
 export interface SellerStats {
   rating: number; // average review rating across the seller's products (0 if none)
   reviewCount: number;

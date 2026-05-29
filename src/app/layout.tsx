@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import UnverifiedBanner from "@/components/UnverifiedBanner";
 import { CartProvider } from "@/lib/cart-context";
+import { FavoritesProvider } from "@/lib/favorites-context";
 import { getSessionUser } from "@/lib/session";
 import { db } from "@/lib/db";
 import { getUnreadCount } from "@/lib/chat-db";
@@ -54,10 +55,12 @@ export default async function RootLayout({
     <html lang="mn" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <CartProvider>
-          <Header user={user} isSeller={isSeller} unreadCount={unreadCount} notificationCount={notificationCount} isAdmin={userIsAdmin} />
-          {user && !user.emailVerified && <UnverifiedBanner email={user.email} />}
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <FavoritesProvider isLoggedIn={!!user}>
+            <Header user={user} isSeller={isSeller} unreadCount={unreadCount} notificationCount={notificationCount} isAdmin={userIsAdmin} />
+            {user && !user.emailVerified && <UnverifiedBanner email={user.email} />}
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </FavoritesProvider>
         </CartProvider>
       </body>
     </html>

@@ -119,7 +119,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
         <span className="text-foreground">{product.name}</span>
       </nav>
 
-      <ProductDetail product={product} seller={seller} sellerStats={getSellerStats(seller.id)} canMessage={!isOwnStore} />
+      <ProductDetail
+        product={product}
+        seller={seller}
+        sellerStats={getSellerStats(seller.id)}
+        canMessage={!isOwnStore}
+      />
 
       <ReviewsSection productId={numericId} />
 

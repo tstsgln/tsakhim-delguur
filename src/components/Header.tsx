@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '@/lib/cart-context';
-import { categories } from '@/lib/data';
+import { useFavorites } from '@/lib/favorites-context';
+import { categories, formatPrice } from '@/lib/data';
 import type { SessionUser } from '@/lib/types';
 import { logout } from '@/app/actions/auth';
 
@@ -197,16 +199,19 @@ export default function Header({
     return () => clearInterval(interval);
   }, [user, router]);
   const { totalItems } = useCart();
+  const { favorites, unseenCount: favUnseen, markFavoritesSeen } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoryDropdown, setCategoryDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
   const [notifDropdown, setNotifDropdown] = useState(false);
+  const [favDropdown, setFavDropdown] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const categoryMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
+  const favMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!userDropdown) return;
@@ -240,6 +245,17 @@ export default function Header({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [notifDropdown]);
+
+  useEffect(() => {
+    if (!favDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (favMenuRef.current && !favMenuRef.current.contains(e.target as Node)) {
+        setFavDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [favDropdown]);
 
   const openNotifDropdown = async () => {
     setNotifDropdown(true);
@@ -457,13 +473,70 @@ export default function Header({
                 )}
               </div>
             )}
-            <Link
-              href="/favorites"
-              className="hidden md:flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
-            >
-              <HeartIcon />
-              <span className="text-[11px] font-medium">Хадгалсан</span>
-            </Link>
+            <div ref={favMenuRef} className="relative hidden md:block">
+              <button
+                onClick={() => {
+                  const opening = !favDropdown;
+                  setFavDropdown(opening);
+                  if (opening) markFavoritesSeen();
+                }}
+                aria-label="Хадгалсан"
+                className="flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"
+              >
+                <span className="relative">
+                  <HeartIcon />
+                  {favUnseen > 0 && (
+                    <span className="absolute -top-1 -right-1.5 bg-primary text-white text-[10px] leading-none rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold ring-2 ring-surface">
+                      {favUnseen > 9 ? '9+' : favUnseen}
+                    </span>
+                  )}
+                </span>
+                <span className="text-[11px] font-medium">Хадгалсан</span>
+              </button>
+              {favDropdown && (
+                <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg w-80 z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <span className="text-sm font-semibold">Хадгалсан бүтээгдэхүүн</span>
+                  </div>
+                  <div className="max-h-[420px] overflow-y-auto">
+                    {favorites.length === 0 ? (
+                      <div className="px-4 py-10 text-center text-sm text-muted">
+                        <div className="text-3xl mb-2">♡</div>
+                        Хадгалсан зүйл алга байна
+                      </div>
+                    ) : (
+                      favorites.map(p => (
+                        <Link
+                          key={p.id}
+                          href={`/product/${p.id}`}
+                          onClick={() => setFavDropdown(false)}
+                          className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-primary-light/10 transition-colors"
+                        >
+                          <span className="w-12 h-12 rounded-lg overflow-hidden bg-primary-light/20 flex-shrink-0 relative">
+                            {p.images?.[0] ? (
+                              <Image src={p.images[0]} alt={p.name} fill sizes="48px" className="object-cover" />
+                            ) : (
+                              <span className="w-full h-full flex items-center justify-center text-lg">📦</span>
+                            )}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{p.name}</p>
+                            <p className="text-sm text-primary font-semibold">{formatPrice(p.price)}</p>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                  <Link
+                    href="/favorites"
+                    onClick={() => setFavDropdown(false)}
+                    className="block px-4 py-3 text-center text-sm font-medium text-primary border-t border-border hover:bg-primary-light/10 transition-colors"
+                  >
+                    Бүгдийг харах →
+                  </Link>
+                </div>
+              )}
+            </div>
             <Link
               href="/cart"
               className="flex flex-col items-center gap-0.5 px-2 py-1 text-primary hover:text-primary-dark transition-colors"

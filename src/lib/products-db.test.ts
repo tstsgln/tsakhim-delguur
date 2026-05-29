@@ -8,11 +8,13 @@ import {
   getCategoryCounts,
   getSitemapProducts,
   getSellerStats,
+  getFavoriteProducts,
 } from './products-db';
+import { isFavorite, addFavorite, toggleFavorite, countFavorites } from './favorites-db';
 
 function reset() {
   db.pragma('foreign_keys = OFF');
-  for (const t of ['reviews', 'order_items', 'orders', 'product_images', 'products', 'sellers', 'users']) {
+  for (const t of ['favorites', 'reviews', 'order_items', 'orders', 'product_images', 'products', 'sellers', 'users']) {
     db.exec(`DELETE FROM ${t}`);
   }
   db.exec('DELETE FROM sqlite_sequence');
@@ -100,5 +102,52 @@ describe('getSellerStats', () => {
     expect(stats.rating).toBeCloseTo(4.5);
     expect(stats.reviewCount).toBe(2);
     expect(stats.salesCount).toBe(2);
+  });
+});
+
+describe('favorites', () => {
+  function makeUser(email: string): number {
+    return Number(
+      db.prepare("INSERT INTO users (name, email, password_hash, email_verified_at) VALUES ('U', ?, 'x', datetime('now'))").run(email).lastInsertRowid,
+    );
+  }
+
+  it('adds, detects, counts and lists a favorite (idempotent add)', () => {
+    const { productId } = seedProduct();
+    const userId = makeUser('fav@x.mn');
+
+    expect(isFavorite(userId, productId)).toBe(false);
+    addFavorite(userId, productId);
+    addFavorite(userId, productId); // INSERT OR IGNORE — no duplicate
+    expect(isFavorite(userId, productId)).toBe(true);
+    expect(countFavorites(userId)).toBe(1);
+    expect(getFavoriteProducts(userId)).toHaveLength(1);
+  });
+
+  it('toggles on and off', () => {
+    const { productId } = seedProduct();
+    const userId = makeUser('fav@x.mn');
+    expect(toggleFavorite(userId, productId)).toBe(true);
+    expect(isFavorite(userId, productId)).toBe(true);
+    expect(toggleFavorite(userId, productId)).toBe(false);
+    expect(countFavorites(userId)).toBe(0);
+  });
+
+  it('excludes archived products from the favorites list but keeps the row', () => {
+    const { productId } = seedProduct();
+    const userId = makeUser('fav@x.mn');
+    addFavorite(userId, productId);
+    db.prepare("UPDATE products SET archived_at = datetime('now') WHERE id = ?").run(productId);
+    expect(getFavoriteProducts(userId)).toHaveLength(0);
+    expect(countFavorites(userId)).toBe(1);
+  });
+
+  it("keeps users' favorites independent", () => {
+    const { productId } = seedProduct();
+    const a = makeUser('a@x.mn');
+    const b = makeUser('b@x.mn');
+    addFavorite(a, productId);
+    expect(countFavorites(a)).toBe(1);
+    expect(countFavorites(b)).toBe(0);
   });
 });
