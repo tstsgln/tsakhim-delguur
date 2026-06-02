@@ -91,6 +91,8 @@ export default async function SellerOrderDetailPage({ params }: PageProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{it.product_name}</p>
+                {it.variant && <p className="text-xs text-muted">{it.variant}</p>}
+                {it.personalization && <p className="text-xs text-primary">✍️ {it.personalization}</p>}
                 <p className="text-xs text-muted">
                   {formatPrice(it.unit_price)} × {it.quantity}
                 </p>

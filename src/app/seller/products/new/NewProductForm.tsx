@@ -168,6 +168,47 @@ export default function NewProductForm({ categories, storeId }: Props) {
         </span>
       </label>
 
+      <div className="border border-border rounded-lg p-4 space-y-3">
+        <div>
+          <p className="text-sm font-medium">Хувилбар (сонголт, заавал биш)</p>
+          <p className="text-xs text-muted mt-0.5">
+            Жишээ: <b>Өнгө</b> → Улаан, Хөх, Ногоон. Худалдан авагч сагсанд нэмэхдээ сонгоно. Утгуудыг таслалаар (,) тусгаарла.
+          </p>
+        </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              name={`optionName${i}`}
+              type="text"
+              placeholder={i === 1 ? 'Сонголтын нэр (ж: Хэмжээ)' : 'Сонголтын нэр'}
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+            />
+            <input
+              name={`optionValues${i}`}
+              type="text"
+              placeholder="Утгууд: S, M, L"
+              className="sm:col-span-2 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Захиалгаар хийх бичвэр (заавал биш)</label>
+        <input
+          name="personalizationPrompt"
+          type="text"
+          maxLength={100}
+          defaultValue={values?.personalizationPrompt ?? ''}
+          placeholder="Ж: Сийлүүлэх нэр, Захидлын текст"
+          className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary"
+        />
+        <p className="text-xs text-muted mt-1">
+          Бөглөвөл худалдан авагч энэ нэртэй текст талбар бөглөж захиалдаг болно (ж: гэрэлгэх нэр).
+        </p>
+        {errors?.personalizationPrompt?.[0] && <p className="text-xs text-red-600 mt-1">{errors.personalizationPrompt[0]}</p>}
+      </div>
+
       <div>
         <label className="block text-sm font-medium mb-1">Зургууд</label>
         <input

@@ -150,6 +150,7 @@ const ProductSchema = z.object({
   category: z.string().trim().min(1, 'Ангилал шаардлагатай'),
   stockQuantity: z.coerce.number().int().min(0, 'Үлдэгдэл сөрөг байж болохгүй'),
   acceptCustomOrders: z.preprocess(v => v === 'on', z.boolean()),
+  personalizationPrompt: z.string().trim().max(100, 'Хэт урт байна').optional(),
 });
 
 export interface ProductFormValues {
@@ -159,6 +160,21 @@ export interface ProductFormValues {
   category: string;
   stockQuantity: string;
   acceptCustomOrders: boolean;
+  personalizationPrompt: string;
+}
+
+// Parses up to MAX_OPTIONS option groups from the form: optionName{i} + optionValues{i}
+// (comma-separated). Skips groups with a blank name or no values.
+const MAX_OPTIONS = 3;
+function parseOptionsFromForm(formData: FormData): Array<{ name: string; values: string[] }> {
+  const out: Array<{ name: string; values: string[] }> = [];
+  for (let i = 1; i <= MAX_OPTIONS; i++) {
+    const name = String(formData.get(`optionName${i}`) ?? '').trim();
+    const raw = String(formData.get(`optionValues${i}`) ?? '');
+    const values = [...new Set(raw.split(',').map(v => v.trim()).filter(Boolean))];
+    if (name && values.length > 0) out.push({ name, values });
+  }
+  return out;
 }
 
 export type ProductState =
@@ -243,6 +259,7 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     category: String(formData.get('category') ?? ''),
     stockQuantity: String(formData.get('stockQuantity') ?? ''),
     acceptCustomOrders: formData.get('acceptCustomOrders') === 'on',
+    personalizationPrompt: String(formData.get('personalizationPrompt') ?? ''),
   };
 
   const user = await getSessionUser();
@@ -262,6 +279,7 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     category: formData.get('category'),
     stockQuantity: formData.get('stockQuantity'),
     acceptCustomOrders: formData.get('acceptCustomOrders'),
+    personalizationPrompt: formData.get('personalizationPrompt') ?? '',
   });
 
   if (!parsed.success) {
@@ -303,12 +321,20 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     savedPaths.push(`/uploads/products/${filename}`);
   }
 
+  const options = parseOptionsFromForm(formData);
+
   const insertProduct = db.prepare(
-    `INSERT INTO products (seller_id, name, description, price, category, stock_quantity, accept_custom_orders)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO products (seller_id, name, description, price, category, stock_quantity, accept_custom_orders, personalization_prompt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const insertImage = db.prepare(
     'INSERT INTO product_images (product_id, path, position) VALUES (?, ?, ?)',
+  );
+  const insertOption = db.prepare(
+    'INSERT INTO product_options (product_id, name, position) VALUES (?, ?, ?)',
+  );
+  const insertOptionValue = db.prepare(
+    'INSERT INTO product_option_values (option_id, value, position) VALUES (?, ?, ?)',
   );
 
   let newProductId = 0;
@@ -321,9 +347,14 @@ export async function createProduct(_state: ProductState, formData: FormData): P
       productData.category,
       productData.stockQuantity,
       productData.acceptCustomOrders ? 1 : 0,
+      productData.personalizationPrompt?.trim() || null,
     );
     newProductId = Number(result.lastInsertRowid);
     imagePaths.forEach((p, i) => insertImage.run(newProductId, p, i));
+    options.forEach((opt, oi) => {
+      const optId = Number(insertOption.run(newProductId, opt.name, oi).lastInsertRowid);
+      opt.values.forEach((v, vi) => insertOptionValue.run(optId, v, vi));
+    });
   });
   tx(parsed.data, savedPaths);
 

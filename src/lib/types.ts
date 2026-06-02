@@ -17,6 +17,15 @@ export interface Product {
   createdAt: string;
   stockQuantity: number;
   acceptCustomOrders: boolean;
+  /** Optional buyer-entered text prompt (e.g. "Сийлүүлэх нэр"); null/empty = no personalization. */
+  personalizationPrompt?: string | null;
+  /** Variation option groups (e.g. Өнгө → [Улаан, Хөх]). Only populated on the product detail page. */
+  options?: ProductOption[];
+}
+
+export interface ProductOption {
+  name: string;
+  values: string[];
 }
 
 export interface Seller {
@@ -40,6 +49,10 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
+  /** Human-readable variant selection, e.g. "Өнгө: Улаан / Хэмжээ: M". */
+  variant?: string;
+  /** Buyer-entered personalization text. */
+  personalization?: string;
 }
 
 export interface Review {

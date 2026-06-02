@@ -38,7 +38,12 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
 
   const total = items.reduce((s, it) => s + it.product.price * it.quantity, 0);
   const cartJson = JSON.stringify(
-    items.map(it => ({ productId: Number(it.product.id), quantity: it.quantity })),
+    items.map(it => ({
+      productId: Number(it.product.id),
+      quantity: it.quantity,
+      variant: it.variant,
+      personalization: it.personalization,
+    })),
   );
 
   if (mounted && items.length === 0 && !state?.success) {

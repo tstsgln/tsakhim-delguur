@@ -23,7 +23,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 23;
+const SCHEMA_VERSION = 24;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -66,6 +66,7 @@ if (currentVersion < SCHEMA_VERSION) {
       price INTEGER NOT NULL,
       category TEXT NOT NULL,
       view_count INTEGER NOT NULL DEFAULT 0,
+      personalization_prompt TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -148,9 +149,27 @@ if (currentVersion < SCHEMA_VERSION) {
       product_image_path TEXT,
       unit_price INTEGER NOT NULL,
       quantity INTEGER NOT NULL,
-      line_total INTEGER NOT NULL
+      line_total INTEGER NOT NULL,
+      variant TEXT,
+      personalization TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+
+    CREATE TABLE IF NOT EXISTS product_options (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_options_product ON product_options(product_id);
+
+    CREATE TABLE IF NOT EXISTS product_option_values (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      option_id INTEGER NOT NULL REFERENCES product_options(id) ON DELETE CASCADE,
+      value TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_option_values_option ON product_option_values(option_id);
 
     CREATE TABLE IF NOT EXISTS balances (
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -309,6 +328,17 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (productCols.length > 0 && !productCols.some(c => c.name === 'view_count')) {
     db.exec('ALTER TABLE products ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0');
+  }
+  if (productCols.length > 0 && !productCols.some(c => c.name === 'personalization_prompt')) {
+    db.exec('ALTER TABLE products ADD COLUMN personalization_prompt TEXT');
+  }
+
+  const orderItemCols = db.prepare("PRAGMA table_info(order_items)").all() as Array<{ name: string }>;
+  if (orderItemCols.length > 0 && !orderItemCols.some(c => c.name === 'variant')) {
+    db.exec('ALTER TABLE order_items ADD COLUMN variant TEXT');
+  }
+  if (orderItemCols.length > 0 && !orderItemCols.some(c => c.name === 'personalization')) {
+    db.exec('ALTER TABLE order_items ADD COLUMN personalization TEXT');
   }
 
   const sellerCols2 = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;

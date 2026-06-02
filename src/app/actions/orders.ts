@@ -35,6 +35,8 @@ const CheckoutSchema = z.object({
 const CartLineSchema = z.object({
   productId: z.number().int().positive(),
   quantity: z.number().int().positive(),
+  variant: z.string().trim().max(300).optional(),
+  personalization: z.string().trim().max(300).optional(),
 });
 
 export type CheckoutState =

@@ -47,11 +47,15 @@ export interface OrderItemRow {
   unit_price: number;
   quantity: number;
   line_total: number;
+  variant: string | null;
+  personalization: string | null;
 }
 
 export interface CartLine {
   productId: number;
   quantity: number;
+  variant?: string;
+  personalization?: string;
 }
 
 interface ProductSnapshot {
@@ -106,12 +110,18 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
   const productIds = [...new Set(validLines.map(l => l.productId))];
   const snapshots = fetchProductSnapshots(productIds);
 
-  const bySeller = new Map<number, { product: ProductSnapshot; quantity: number }[]>();
+  type GroupLine = { product: ProductSnapshot; quantity: number; variant: string | null; personalization: string | null };
+  const bySeller = new Map<number, GroupLine[]>();
   for (const line of validLines) {
     const snap = snapshots.get(line.productId);
     if (!snap) throw new Error('Зарим бараа олдсонгүй');
     const group = bySeller.get(snap.seller_id) ?? [];
-    group.push({ product: snap, quantity: line.quantity });
+    group.push({
+      product: snap,
+      quantity: line.quantity,
+      variant: line.variant?.trim() || null,
+      personalization: line.personalization?.trim() || null,
+    });
     bySeller.set(snap.seller_id, group);
   }
 
@@ -129,8 +139,8 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
   const insertItem = db.prepare(`
     INSERT INTO order_items (
       order_id, product_id, product_name, product_image_path,
-      unit_price, quantity, line_total
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      unit_price, quantity, line_total, variant, personalization
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const decrementStock = db.prepare(
@@ -157,7 +167,7 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
         giftMessage,
       );
       const orderId = Number(result.lastInsertRowid);
-      for (const { product, quantity } of items) {
+      for (const { product, quantity, variant, personalization } of items) {
         const upd = decrementStock.run(quantity, product.id, quantity);
         if (upd.changes === 0) {
           throw new Error(`«${product.name}» хүрэлцэхгүй байна`);
@@ -170,6 +180,8 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
           product.price,
           quantity,
           product.price * quantity,
+          variant,
+          personalization,
         );
       }
       summaries.push({ orderId, sellerId, subtotal });

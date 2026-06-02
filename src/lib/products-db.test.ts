@@ -11,12 +11,13 @@ import {
   getFavoriteProducts,
   incrementProductView,
   getSellerShopStats,
+  getProductOptions,
 } from './products-db';
 import { isFavorite, addFavorite, toggleFavorite, countFavorites } from './favorites-db';
 
 function reset() {
   db.pragma('foreign_keys = OFF');
-  for (const t of ['favorites', 'reviews', 'order_items', 'orders', 'product_images', 'products', 'sellers', 'users']) {
+  for (const t of ['favorites', 'reviews', 'order_items', 'orders', 'product_option_values', 'product_options', 'product_images', 'products', 'sellers', 'users']) {
     db.exec(`DELETE FROM ${t}`);
   }
   db.exec('DELETE FROM sqlite_sequence');
@@ -209,5 +210,27 @@ describe('seller shop stats', () => {
     expect(stats.totalSales).toBe(0);
     expect(stats.totalViews).toBe(0);
     expect(stats.conversionPct).toBe(0);
+  });
+});
+
+describe('product options', () => {
+  it('returns option groups with their values in position order', () => {
+    const { productId } = seedProduct();
+    const o1 = Number(db.prepare("INSERT INTO product_options (product_id, name, position) VALUES (?, 'Өнгө', 0)").run(productId).lastInsertRowid);
+    db.prepare("INSERT INTO product_option_values (option_id, value, position) VALUES (?, 'Улаан', 0)").run(o1);
+    db.prepare("INSERT INTO product_option_values (option_id, value, position) VALUES (?, 'Хөх', 1)").run(o1);
+    const o2 = Number(db.prepare("INSERT INTO product_options (product_id, name, position) VALUES (?, 'Хэмжээ', 1)").run(productId).lastInsertRowid);
+    db.prepare("INSERT INTO product_option_values (option_id, value, position) VALUES (?, 'M', 0)").run(o2);
+
+    expect(getProductOptions(productId)).toEqual([
+      { name: 'Өнгө', values: ['Улаан', 'Хөх'] },
+      { name: 'Хэмжээ', values: ['M'] },
+    ]);
+    expect(getProductDetail(productId)!.product.options).toHaveLength(2);
+  });
+
+  it('returns an empty array for a product with no options', () => {
+    const { productId } = seedProduct();
+    expect(getProductOptions(productId)).toEqual([]);
   });
 });

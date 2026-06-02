@@ -1,6 +1,6 @@
 import 'server-only';
 import { db } from './db';
-import type { Product } from './types';
+import type { Product, ProductOption } from './types';
 
 interface JoinedRow {
   id: number;
@@ -11,6 +11,7 @@ interface JoinedRow {
   created_at: string;
   stock_quantity: number;
   accept_custom_orders: number;
+  personalization_prompt: string | null;
   seller_id: number;
   store_name: string;
   seller_location: string;
@@ -46,6 +47,7 @@ const BASE_QUERY = `
     p.created_at,
     p.stock_quantity,
     p.accept_custom_orders,
+    p.personalization_prompt,
     s.id AS seller_id,
     s.store_name,
     s.location AS seller_location,
@@ -93,7 +95,23 @@ function toProduct(row: JoinedRow): Product {
     createdAt: row.created_at,
     stockQuantity: row.stock_quantity,
     acceptCustomOrders: row.accept_custom_orders === 1,
+    personalizationPrompt: row.personalization_prompt,
+    options: [],
   };
+}
+
+export function getProductOptions(productId: number): ProductOption[] {
+  const opts = db
+    .prepare('SELECT id, name FROM product_options WHERE product_id = ? ORDER BY position ASC, id ASC')
+    .all(productId) as Array<{ id: number; name: string }>;
+  return opts.map(o => ({
+    name: o.name,
+    values: (
+      db
+        .prepare('SELECT value FROM product_option_values WHERE option_id = ? ORDER BY position ASC, id ASC')
+        .all(o.id) as Array<{ value: string }>
+    ).map(v => v.value),
+  }));
 }
 
 export function getAllProducts(): Product[] {
@@ -120,6 +138,7 @@ const DETAIL_QUERY = `
     p.created_at,
     p.stock_quantity,
     p.accept_custom_orders,
+    p.personalization_prompt,
     s.id AS seller_id,
     s.store_name,
     s.location AS seller_location,
@@ -147,7 +166,7 @@ export function getProductDetail(id: number): ProductDetail | null {
   const row = db.prepare(DETAIL_QUERY).get(id) as JoinedRow | undefined;
   if (!row) return null;
   return {
-    product: toProduct(row),
+    product: { ...toProduct(row), options: getProductOptions(id) },
     seller: {
       id: row.seller_id,
       storeName: row.store_name,

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useCart } from '@/lib/cart-context';
+import { useCart, cartLineKey } from '@/lib/cart-context';
 import { formatPrice } from '@/lib/data';
 import PlaceholderImage from '@/components/PlaceholderImage';
 
@@ -32,10 +32,12 @@ export default function CartPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Cart items */}
         <div className="lg:col-span-2 space-y-4">
-          {items.map(({ product, quantity }) => {
+          {items.map(item => {
+            const { product, quantity, variant, personalization } = item;
+            const lineKey = cartLineKey(item);
             const cover = product.images?.[0];
             return (
-            <div key={product.id} className="bg-surface border border-border rounded-xl p-4 flex gap-4">
+            <div key={lineKey} className="bg-surface border border-border rounded-xl p-4 flex gap-4">
               <Link href={`/product/${product.id}`} className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-surface">
                 {cover ? (
                   <Image
@@ -54,17 +56,21 @@ export default function CartPage() {
                   {product.name}
                 </Link>
                 <p className="text-xs text-muted mt-1">{product.seller.name}</p>
+                {variant && <p className="text-xs text-muted mt-0.5">{variant}</p>}
+                {personalization && (
+                  <p className="text-xs text-muted mt-0.5">✍️ {personalization}</p>
+                )}
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center border border-border rounded-lg">
                     <button
-                      onClick={() => updateQuantity(product.id, quantity - 1)}
+                      onClick={() => updateQuantity(lineKey, quantity - 1)}
                       className="px-2.5 py-1 text-sm hover:bg-primary-light/20 transition-colors"
                     >
                       -
                     </button>
                     <span className="px-3 py-1 border-x border-border text-sm">{quantity}</span>
                     <button
-                      onClick={() => updateQuantity(product.id, quantity + 1)}
+                      onClick={() => updateQuantity(lineKey, quantity + 1)}
                       className="px-2.5 py-1 text-sm hover:bg-primary-light/20 transition-colors"
                     >
                       +
@@ -74,7 +80,7 @@ export default function CartPage() {
                 </div>
               </div>
               <button
-                onClick={() => removeFromCart(product.id)}
+                onClick={() => removeFromCart(lineKey)}
                 className="text-muted hover:text-primary transition-colors self-start text-lg"
               >
                 ✕

@@ -37,7 +37,23 @@ export default function ProductDetail({ product, seller, sellerStats, canMessage
   const cover = product.images?.[activeImage];
   const joinedYear = seller.joinedDate ? new Date(seller.joinedDate).getFullYear() : '';
 
-  const inCartQty = items.find(it => it.product.id === product.id)?.quantity ?? 0;
+  const options = product.options ?? [];
+  const personalizationPrompt = product.personalizationPrompt?.trim() || '';
+  // Default each option group to its first value so a variant is always chosen.
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() =>
+    Object.fromEntries(options.map(o => [o.name, o.values[0] ?? ''])),
+  );
+  const [personalization, setPersonalization] = useState('');
+
+  const variant = options.length
+    ? options.map(o => `${o.name}: ${selectedOptions[o.name]}`).join(' / ')
+    : undefined;
+  const needsPersonalization = personalizationPrompt.length > 0 && personalization.trim().length === 0;
+
+  // Sum across every cart line of this product (variants share one stock pool).
+  const inCartQty = items
+    .filter(it => it.product.id === product.id)
+    .reduce((sum, it) => sum + it.quantity, 0);
   const remainingStock = Math.max(0, product.stockQuantity - inCartQty);
   const soldOut = product.stockQuantity <= 0;
   const cartWouldExceed = quantity > remainingStock;
@@ -101,6 +117,41 @@ export default function ProductDetail({ product, seller, sellerStats, canMessage
             )}
           </div>
 
+          {!soldOut && options.length > 0 && (
+            <div className="space-y-3 mb-6">
+              {options.map(o => (
+                <div key={o.name}>
+                  <label className="block text-sm font-medium mb-1">{o.name}</label>
+                  <select
+                    value={selectedOptions[o.name]}
+                    onChange={e => setSelectedOptions(prev => ({ ...prev, [o.name]: e.target.value }))}
+                    className="w-full sm:w-64 border border-border rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:border-primary"
+                  >
+                    {o.values.map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!soldOut && personalizationPrompt && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-1">
+                ✍️ {personalizationPrompt}
+              </label>
+              <input
+                type="text"
+                value={personalization}
+                onChange={e => setPersonalization(e.target.value)}
+                maxLength={200}
+                placeholder="Энд бичнэ үү..."
+                className="w-full sm:w-80 border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+              />
+            </div>
+          )}
+
           {!soldOut && (
             <div className="flex items-center gap-4 mb-6">
               <span className="text-sm font-medium">Тоо:</span>
@@ -153,10 +204,10 @@ export default function ProductDetail({ product, seller, sellerStats, canMessage
               <button
                 type="button"
                 onClick={() => {
-                  if (cartWouldExceed) return;
-                  addToCart(product, quantity);
+                  if (cartWouldExceed || needsPersonalization) return;
+                  addToCart(product, quantity, { variant, personalization: personalization.trim() || undefined });
                 }}
-                disabled={cartWouldExceed || remainingStock <= 0}
+                disabled={cartWouldExceed || remainingStock <= 0 || needsPersonalization}
                 className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-dark transition-colors active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 🛒 Сагсанд нэмэх
@@ -178,6 +229,9 @@ export default function ProductDetail({ product, seller, sellerStats, canMessage
           </div>
           {cartWouldExceed && !soldOut && (
             <p className="text-xs text-red-600 mt-2">Үлдэгдэлээс илүү тоо сонгох боломжгүй.</p>
+          )}
+          {needsPersonalization && !soldOut && (
+            <p className="text-xs text-warning mt-2">Сагсанд нэмэхийн өмнө «{personalizationPrompt}» талбарыг бөглөнө үү.</p>
           )}
         </div>
       </div>

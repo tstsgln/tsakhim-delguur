@@ -4,6 +4,7 @@ import {
   COMMISSION_RATE_BPS,
   createOrdersFromCart,
   getOrder,
+  getOrderItems,
   markPaid,
   markShipped,
   confirmReceivedByBuyer,
@@ -308,5 +309,38 @@ describe('payouts', () => {
     expect(getSellerBalance(seller.userId)).toBe(0);
     // a second completion on the same payout is rejected
     expect(completePayout(req.payoutId!).ok).toBe(false);
+  });
+});
+
+describe('order items capture variant + personalization', () => {
+  it('stores variant and personalization snapshots on the order item', () => {
+    const { sellerId } = createSeller('S', 's@x.mn');
+    const productId = createProduct(sellerId, 1000, 5);
+    const buyerId = createUser('Buyer', 'buyer@x.mn');
+
+    const [summary] = createOrdersFromCart({
+      buyerUserId: buyerId,
+      lines: [{ productId, quantity: 1, variant: 'Өнгө: Улаан / Хэмжээ: M', personalization: '  Болд  ' }],
+      ...checkoutMeta,
+    });
+    const [item] = getOrderItems(summary.orderId);
+    expect(item.variant).toBe('Өнгө: Улаан / Хэмжээ: M');
+    expect(item.personalization).toBe('Болд'); // trimmed
+  });
+
+  it('leaves variant/personalization null when not provided', () => {
+    const { sellerId } = createSeller('S', 's@x.mn');
+    const productId = createProduct(sellerId, 1000, 5);
+    const buyerId = createUser('Buyer', 'buyer@x.mn');
+
+    const [summary] = createOrdersFromCart({
+      buyerUserId: buyerId,
+      lines: [{ productId, quantity: 2 }],
+      ...checkoutMeta,
+    });
+    const [item] = getOrderItems(summary.orderId);
+    expect(item.variant).toBeNull();
+    expect(item.personalization).toBeNull();
+    expect(item.quantity).toBe(2);
   });
 });
