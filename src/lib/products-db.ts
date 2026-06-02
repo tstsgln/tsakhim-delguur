@@ -235,6 +235,65 @@ export function getSellerStats(sellerId: number): SellerStats {
   };
 }
 
+export function incrementProductView(productId: number): void {
+  db.prepare('UPDATE products SET view_count = view_count + 1 WHERE id = ?').run(productId);
+}
+
+export interface ProductStatRow {
+  id: number;
+  name: string;
+  archived: boolean;
+  views: number;
+  favorites: number;
+  sales: number; // units sold across completed orders
+}
+
+export interface SellerShopStats {
+  totalViews: number;
+  totalFavorites: number;
+  totalSales: number;
+  conversionPct: number; // completed-order sales per 100 views
+  products: ProductStatRow[];
+}
+
+export function getSellerShopStats(sellerId: number): SellerShopStats {
+  const rows = db
+    .prepare(
+      `SELECT
+         p.id,
+         p.name,
+         p.archived_at,
+         p.view_count AS views,
+         (SELECT COUNT(*) FROM favorites f WHERE f.product_id = p.id) AS favorites,
+         COALESCE((
+           SELECT SUM(oi.quantity)
+           FROM order_items oi
+           JOIN orders o ON o.id = oi.order_id
+           WHERE oi.product_id = p.id AND o.status = 'completed'
+         ), 0) AS sales
+       FROM products p
+       WHERE p.seller_id = ?
+       ORDER BY p.view_count DESC, p.created_at DESC`,
+    )
+    .all(sellerId) as Array<{ id: number; name: string; archived_at: string | null; views: number; favorites: number; sales: number }>;
+
+  const products: ProductStatRow[] = rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    archived: r.archived_at !== null,
+    views: r.views,
+    favorites: r.favorites,
+    sales: r.sales,
+  }));
+
+  const totalViews = products.reduce((s, p) => s + p.views, 0);
+  const totalFavorites = products.reduce((s, p) => s + p.favorites, 0);
+  const totalSales = products.reduce((s, p) => s + p.sales, 0);
+  const conversionPct = totalViews > 0 ? (totalSales / totalViews) * 100 : 0;
+
+  return { totalViews, totalFavorites, totalSales, conversionPct, products };
+}
+
 export function getProductsBySeller(sellerId: number): Product[] {
   const rows = db
     .prepare(`${BASE_QUERY} WHERE s.id = ? AND p.archived_at IS NULL ORDER BY p.created_at DESC`)

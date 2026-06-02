@@ -23,7 +23,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 22;
+const SCHEMA_VERSION = 23;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -65,6 +65,7 @@ if (currentVersion < SCHEMA_VERSION) {
       description TEXT NOT NULL,
       price INTEGER NOT NULL,
       category TEXT NOT NULL,
+      view_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -305,6 +306,9 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (productCols.length > 0 && !productCols.some(c => c.name === 'archived_at')) {
     db.exec('ALTER TABLE products ADD COLUMN archived_at TEXT');
+  }
+  if (productCols.length > 0 && !productCols.some(c => c.name === 'view_count')) {
+    db.exec('ALTER TABLE products ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0');
   }
 
   const sellerCols2 = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;

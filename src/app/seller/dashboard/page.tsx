@@ -6,8 +6,10 @@ import { getSessionUser } from '@/lib/session';
 import { categories, formatPrice } from '@/lib/data';
 import type { ProductRow } from '@/lib/types';
 import { getStoresForUser, resolveActiveStore, parseStoreParam } from '@/lib/seller-stores';
+import { getSellerShopStats } from '@/lib/products-db';
 import SellerInfoCard from './SellerInfoCard';
 import ProductInventoryRow from './ProductInventoryRow';
+import ShopStats from './ShopStats';
 import StoreSwitcher from '../StoreSwitcher';
 
 interface ProductListItem extends ProductRow {
@@ -47,6 +49,7 @@ export default async function SellerDashboard({ searchParams }: PageProps) {
 
   const categoryName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
   const qs = `?store=${active.id}`;
+  const shopStats = getSellerShopStats(active.id);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
@@ -92,6 +95,8 @@ export default async function SellerDashboard({ searchParams }: PageProps) {
           <p className="font-semibold">Дансны үлдэгдэл</p>
         </Link>
       </div>
+
+      <ShopStats stats={shopStats} />
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Миний бүтээгдэхүүнүүд</h2>

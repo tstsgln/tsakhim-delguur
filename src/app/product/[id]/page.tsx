@@ -2,7 +2,7 @@ import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProductDetail, getRelatedProducts, getMoreFromSeller, getSellerStats } from '@/lib/products-db';
+import { getProductDetail, getRelatedProducts, getMoreFromSeller, getSellerStats, incrementProductView } from '@/lib/products-db';
 import { categories } from '@/lib/data';
 import { getSessionUser } from '@/lib/session';
 import { db } from '@/lib/db';
@@ -99,6 +99,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
     const row = db.prepare('SELECT user_id FROM sellers WHERE id = ?').get(seller.id) as { user_id: number } | undefined;
     isOwnStore = row?.user_id === user.id;
   }
+
+  // Count the view for shop stats, but don't let the seller inflate their own.
+  if (!isOwnStore) incrementProductView(numericId);
 
   const moreFromSeller = getMoreFromSeller(seller.id, numericId, 4);
   const related = getRelatedProducts(numericId, product.category, 4);

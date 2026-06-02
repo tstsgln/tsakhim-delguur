@@ -9,6 +9,8 @@ import {
   getSitemapProducts,
   getSellerStats,
   getFavoriteProducts,
+  incrementProductView,
+  getSellerShopStats,
 } from './products-db';
 import { isFavorite, addFavorite, toggleFavorite, countFavorites } from './favorites-db';
 
@@ -149,5 +151,63 @@ describe('favorites', () => {
     addFavorite(a, productId);
     expect(countFavorites(a)).toBe(1);
     expect(countFavorites(b)).toBe(0);
+  });
+});
+
+describe('seller shop stats', () => {
+  function makeUser(email: string): number {
+    return Number(
+      db.prepare("INSERT INTO users (name, email, password_hash, email_verified_at) VALUES ('U', ?, 'x', datetime('now'))").run(email).lastInsertRowid,
+    );
+  }
+
+  // Records a completed order for `units` of the product so it counts as a sale.
+  function completedSale(sellerId: number, productId: number, buyerId: number, units: number) {
+    const orderId = Number(
+      db.prepare(
+        `INSERT INTO orders (buyer_user_id, seller_id, status, subtotal, commission_rate, commission_amount, seller_amount, buyer_phone, shipping_address)
+         VALUES (?, ?, 'completed', 1000, 500, 50, 950, '99', 'UB')`,
+      ).run(buyerId, sellerId).lastInsertRowid,
+    );
+    db.prepare(
+      "INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity, line_total) VALUES (?, ?, 'Vase', 1000, ?, ?)",
+    ).run(orderId, productId, units, 1000 * units);
+  }
+
+  it('aggregates views, favorites, sales and conversion', () => {
+    const { sellerId, productId } = seedProduct();
+    incrementProductView(productId);
+    incrementProductView(productId);
+    incrementProductView(productId);
+    incrementProductView(productId); // 4 views
+    addFavorite(makeUser('f@x.mn'), productId); // 1 favorite
+    completedSale(sellerId, productId, makeUser('buyer@x.mn'), 1); // 1 sale
+
+    const stats = getSellerShopStats(sellerId);
+    expect(stats.totalViews).toBe(4);
+    expect(stats.totalFavorites).toBe(1);
+    expect(stats.totalSales).toBe(1);
+    expect(stats.conversionPct).toBeCloseTo(25); // 1/4 * 100
+    expect(stats.products[0]).toMatchObject({ id: productId, views: 4, favorites: 1, sales: 1 });
+  });
+
+  it('only counts completed orders as sales and reports 0% conversion with no views', () => {
+    const { sellerId, productId } = seedProduct();
+    const buyer = makeUser('buyer@x.mn');
+    // A pending order should NOT count toward sales.
+    const pendingOrder = Number(
+      db.prepare(
+        `INSERT INTO orders (buyer_user_id, seller_id, status, subtotal, commission_rate, commission_amount, seller_amount, buyer_phone, shipping_address)
+         VALUES (?, ?, 'pending_payment', 1000, 500, 50, 950, '99', 'UB')`,
+      ).run(buyer, sellerId).lastInsertRowid,
+    );
+    db.prepare(
+      "INSERT INTO order_items (order_id, product_id, product_name, unit_price, quantity, line_total) VALUES (?, ?, 'Vase', 1000, 2, 2000)",
+    ).run(pendingOrder, productId);
+
+    const stats = getSellerShopStats(sellerId);
+    expect(stats.totalSales).toBe(0);
+    expect(stats.totalViews).toBe(0);
+    expect(stats.conversionPct).toBe(0);
   });
 });
