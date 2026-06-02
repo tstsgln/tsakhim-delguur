@@ -9,7 +9,14 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import type { SellerRow } from '@/lib/types';
-import { ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_EXTS, EXT_TO_MIME, MAX_IMAGE_BYTES } from '@/lib/uploads';
+import {
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_IMAGE_EXTS,
+  EXT_TO_MIME,
+  MAX_IMAGE_BYTES,
+  validateImageFile,
+  saveImageFile,
+} from '@/lib/uploads';
 
 const SellerSchema = z.object({
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
@@ -71,11 +78,12 @@ const UpdateSellerSchema = z.object({
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   location: z.string().trim().min(1, 'Байршил шаардлагатай'),
   description: z.string().trim().optional(),
+  story: z.string().trim().max(4000, 'Түүх хэт урт байна').optional(),
 });
 
 export type UpdateSellerState =
   | {
-      errors?: Partial<Record<keyof z.infer<typeof UpdateSellerSchema>, string[]>>;
+      errors?: Partial<Record<keyof z.infer<typeof UpdateSellerSchema> | 'banner', string[]>>;
       message?: string;
       success?: boolean;
     }
@@ -91,6 +99,7 @@ export async function updateSeller(_state: UpdateSellerState, formData: FormData
     phone: formData.get('phone'),
     location: formData.get('location'),
     description: formData.get('description') ?? '',
+    story: formData.get('story') ?? '',
   });
 
   if (!parsed.success) {
@@ -99,15 +108,38 @@ export async function updateSeller(_state: UpdateSellerState, formData: FormData
 
   const data = parsed.data;
   const owned = db
-    .prepare('SELECT 1 FROM sellers WHERE id = ? AND user_id = ?')
-    .get(data.storeId, user.id);
+    .prepare('SELECT banner_path FROM sellers WHERE id = ? AND user_id = ?')
+    .get(data.storeId, user.id) as { banner_path: string | null } | undefined;
   if (!owned) return { message: 'Энэ дэлгүүр таных биш байна' };
 
+  // Optional new banner image — validate, save, then drop the previous one.
+  let bannerPath = owned.banner_path;
+  const bannerFile = formData.get('banner');
+  if (bannerFile instanceof File && bannerFile.size > 0) {
+    const err = validateImageFile(bannerFile);
+    if (err) return { errors: { banner: [err] } };
+    const saved = await saveImageFile(bannerFile, 'banners');
+    const old = owned.banner_path;
+    bannerPath = saved;
+    if (old && old.startsWith('/uploads/')) {
+      await fs.unlink(path.join(process.cwd(), 'public', old)).catch(() => {});
+    }
+  }
+
   db.prepare(
-    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, description = ? WHERE id = ?`,
-  ).run(data.storeName, data.phone, data.location, data.description || null, data.storeId);
+    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, description = ?, story = ?, banner_path = ? WHERE id = ?`,
+  ).run(
+    data.storeName,
+    data.phone,
+    data.location,
+    data.description || null,
+    data.story || null,
+    bannerPath,
+    data.storeId,
+  );
 
   revalidatePath('/seller/dashboard');
+  revalidatePath(`/store/${data.storeId}`);
   return { success: true };
 }
 

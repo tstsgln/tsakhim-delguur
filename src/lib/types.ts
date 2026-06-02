@@ -72,6 +72,8 @@ export interface SellerRow {
   phone: string;
   location: string;
   description: string | null;
+  story: string | null;
+  banner_path: string | null;
   created_at: string;
 }
 

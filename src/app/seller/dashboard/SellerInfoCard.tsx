@@ -13,6 +13,8 @@ interface Props {
     phone: string;
     location: string;
     description: string | null;
+    story: string | null;
+    banner_path: string | null;
   };
 }
 
@@ -74,6 +76,31 @@ export default function SellerInfoCard({ storeId, seller }: Props) {
               placeholder="Дэлгүүрийн тухай товч тайлбар..."
               className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Урчны түүх (Гар урчинтай танилц)</label>
+            <textarea
+              name="story"
+              rows={5}
+              maxLength={4000}
+              defaultValue={seller.story ?? ''}
+              placeholder="Та хэн бэ? Юу хийдэг вэ? Бүтээлээ хэрхэн урладаг вэ? Худалдан авагчид таныг таньж, итгэхэд тусална."
+              className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Дэлгүүрийн нүүр зураг (banner)</label>
+            {seller.banner_path && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={seller.banner_path} alt="Одоогийн banner" className="w-full h-32 object-cover rounded-lg mb-2 border border-border" />
+            )}
+            <input
+              type="file"
+              name="banner"
+              accept="image/*"
+              className="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary-light/30 file:text-foreground file:cursor-pointer"
+            />
+            {errors?.banner?.[0] && <p className="text-xs text-red-600 mt-1">{errors.banner[0]}</p>}
           </div>
           {state?.message && <p className="text-sm text-red-600">{state.message}</p>}
           <div className="flex gap-2">

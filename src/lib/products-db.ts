@@ -165,6 +165,8 @@ export interface SellerStore {
   location: string;
   phone: string;
   description: string | null;
+  story: string | null;
+  bannerPath: string | null;
   joinedDate: string;
 }
 
@@ -174,12 +176,14 @@ interface SellerRow {
   location: string;
   phone: string;
   description: string | null;
+  story: string | null;
+  banner_path: string | null;
   created_at: string;
 }
 
 export function getSellerStore(id: number): SellerStore | null {
   const row = db
-    .prepare('SELECT id, store_name, location, phone, description, created_at FROM sellers WHERE id = ?')
+    .prepare('SELECT id, store_name, location, phone, description, story, banner_path, created_at FROM sellers WHERE id = ?')
     .get(id) as SellerRow | undefined;
   if (!row) return null;
   return {
@@ -188,6 +192,8 @@ export function getSellerStore(id: number): SellerStore | null {
     location: row.location,
     phone: row.phone,
     description: row.description,
+    story: row.story,
+    bannerPath: row.banner_path,
     joinedDate: row.created_at,
   };
 }

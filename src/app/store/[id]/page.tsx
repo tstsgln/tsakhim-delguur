@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
@@ -79,6 +80,12 @@ export default async function StorePage({ params }: PageProps) {
         <span className="text-foreground">{seller.storeName}</span>
       </nav>
 
+      {seller.bannerPath && (
+        <div className="relative w-full h-40 md:h-60 rounded-2xl overflow-hidden border border-border mb-4">
+          <Image src={seller.bannerPath} alt={`${seller.storeName} banner`} fill sizes="(max-width: 1024px) 100vw, 1024px" className="object-cover" priority />
+        </div>
+      )}
+
       <div className="bg-surface border border-border rounded-2xl p-6 md:p-8 mb-8">
         <div className="flex flex-col md:flex-row gap-6 items-start">
           <div className="w-24 h-24 rounded-2xl bg-primary-light/30 flex items-center justify-center text-5xl flex-shrink-0">
@@ -118,6 +125,15 @@ export default async function StorePage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {seller.story && (
+        <section className="bg-surface border border-border rounded-2xl p-6 md:p-8 mb-8">
+          <h2 className="text-xl font-bold mb-3">🌱 Гар урчинтай танилц</h2>
+          <p className="text-sm md:text-base text-foreground/90 whitespace-pre-wrap leading-relaxed max-w-3xl">
+            {seller.story}
+          </p>
+        </section>
+      )}
 
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Бүтээгдэхүүнүүд</h2>

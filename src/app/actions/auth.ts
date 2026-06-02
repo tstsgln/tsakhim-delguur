@@ -202,11 +202,14 @@ export async function deleteAccount(
        WHERE r.user_id = ?`,
     )
     .all(user.id) as Array<{ p: string }>;
+  const bannerImages = db
+    .prepare('SELECT banner_path AS p FROM sellers WHERE user_id = ? AND banner_path IS NOT NULL')
+    .all(user.id) as Array<{ p: string }>;
 
   db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
 
   const publicDir = path.join(process.cwd(), 'public');
-  for (const { p } of [...productImages, ...chatImages, ...reviewImages]) {
+  for (const { p } of [...productImages, ...chatImages, ...reviewImages, ...bannerImages]) {
     if (!p.startsWith('/uploads/')) continue;
     try {
       await fs.unlink(path.join(publicDir, p));

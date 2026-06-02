@@ -23,7 +23,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 21;
+const SCHEMA_VERSION = 22;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -53,6 +53,8 @@ if (currentVersion < SCHEMA_VERSION) {
       phone TEXT NOT NULL,
       location TEXT NOT NULL,
       description TEXT,
+      story TEXT,
+      banner_path TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -303,6 +305,14 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (productCols.length > 0 && !productCols.some(c => c.name === 'archived_at')) {
     db.exec('ALTER TABLE products ADD COLUMN archived_at TEXT');
+  }
+
+  const sellerCols2 = db.prepare("PRAGMA table_info(sellers)").all() as Array<{ name: string }>;
+  if (sellerCols2.length > 0 && !sellerCols2.some(c => c.name === 'story')) {
+    db.exec('ALTER TABLE sellers ADD COLUMN story TEXT');
+  }
+  if (sellerCols2.length > 0 && !sellerCols2.some(c => c.name === 'banner_path')) {
+    db.exec('ALTER TABLE sellers ADD COLUMN banner_path TEXT');
   }
 
   const orderCols = db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>;
