@@ -14,6 +14,7 @@ export interface ReviewRow {
 
 export interface ReviewWithUser extends ReviewRow {
   user_name: string;
+  images: string[];
 }
 
 export interface ProductRatingStats {
@@ -35,6 +36,7 @@ export function createReview(args: {
   userId: number;
   rating: number;
   comment?: string;
+  imagePaths?: string[];
 }): { ok: boolean; reason?: string; reviewId?: number } {
   if (!Number.isInteger(args.rating) || args.rating < 1 || args.rating > 5) {
     return { ok: false, reason: 'Үнэлгээ 1-5 хооронд байх ёстой' };
@@ -65,21 +67,32 @@ export function createReview(args: {
     .get(args.orderItemId) as { id: number } | undefined;
   if (existing) return { ok: false, reason: 'Энэ бараанд аль хэдийн үнэлгээ өгсөн байна' };
 
-  const result = db
-    .prepare(
-      `INSERT INTO reviews (order_id, order_item_id, product_id, user_id, rating, comment)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+  const images = (args.imagePaths ?? []).filter(p => p && p.startsWith('/uploads/')).slice(0, 4);
+  const productId = item.product_id;
+
+  const insertReview = db.prepare(
+    `INSERT INTO reviews (order_id, order_item_id, product_id, user_id, rating, comment)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+  const insertImage = db.prepare(
+    'INSERT INTO review_images (review_id, path, position) VALUES (?, ?, ?)',
+  );
+
+  const tx = db.transaction(() => {
+    const result = insertReview.run(
       item.order_id,
       args.orderItemId,
-      item.product_id,
+      productId,
       args.userId,
       args.rating,
       args.comment?.trim() || null,
     );
+    const reviewId = Number(result.lastInsertRowid);
+    images.forEach((p, i) => insertImage.run(reviewId, p, i));
+    return reviewId;
+  });
 
-  return { ok: true, reviewId: Number(result.lastInsertRowid) };
+  return { ok: true, reviewId: tx() };
 }
 
 export function getReviewByOrderItem(orderItemId: number): ReviewRow | null {
@@ -96,17 +109,27 @@ export function getReviewsForOrder(orderId: number): Map<number, ReviewRow> {
   return new Map(rows.map(r => [r.order_item_id, r]));
 }
 
+interface ReviewQueryRow extends Omit<ReviewWithUser, 'images'> {
+  images: string;
+}
+
 export function getProductReviews(productId: number, limit = 50): ReviewWithUser[] {
-  return db
+  const rows = db
     .prepare(
-      `SELECT r.*, u.name AS user_name
+      `SELECT r.*, u.name AS user_name,
+              COALESCE(
+                (SELECT json_group_array(path)
+                 FROM (SELECT path FROM review_images WHERE review_id = r.id ORDER BY position ASC)),
+                '[]'
+              ) AS images
        FROM reviews r
        JOIN users u ON u.id = r.user_id
        WHERE r.product_id = ?
        ORDER BY r.created_at DESC, r.id DESC
        LIMIT ?`,
     )
-    .all(productId, limit) as ReviewWithUser[];
+    .all(productId, limit) as ReviewQueryRow[];
+  return rows.map(row => ({ ...row, images: JSON.parse(row.images) as string[] }));
 }
 
 export function getProductRatingStats(productId: number): ProductRatingStats {

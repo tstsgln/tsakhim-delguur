@@ -236,6 +236,32 @@ export function getProductsBySeller(sellerId: number): Product[] {
   return rows.map(toProduct);
 }
 
+// Same category, excluding the product itself. Newest first.
+export function getRelatedProducts(productId: number, category: string, limit = 4): Product[] {
+  const rows = db
+    .prepare(
+      `${BASE_QUERY}
+       WHERE p.category = ? AND p.id != ? AND p.archived_at IS NULL
+       ORDER BY p.created_at DESC
+       LIMIT ?`,
+    )
+    .all(category, productId, limit) as JoinedRow[];
+  return rows.map(toProduct);
+}
+
+// Other products from the same seller, excluding the product being viewed.
+export function getMoreFromSeller(sellerId: number, excludeProductId: number, limit = 4): Product[] {
+  const rows = db
+    .prepare(
+      `${BASE_QUERY}
+       WHERE s.id = ? AND p.id != ? AND p.archived_at IS NULL
+       ORDER BY p.created_at DESC
+       LIMIT ?`,
+    )
+    .all(sellerId, excludeProductId, limit) as JoinedRow[];
+  return rows.map(toProduct);
+}
+
 export interface StoreSearchResult {
   id: number;
   storeName: string;

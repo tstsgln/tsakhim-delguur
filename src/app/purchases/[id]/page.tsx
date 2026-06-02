@@ -147,6 +147,11 @@ export default async function PurchaseDetailPage({ params }: PageProps) {
         {order.buyer_note && (
           <p className="text-sm text-muted mt-2 italic">«{order.buyer_note}»</p>
         )}
+        {order.is_gift === 1 && (
+          <p className="text-sm text-pink-700 mt-2">
+            🎁 Бэлэг болгож захиалсан{order.gift_message ? ` — «${order.gift_message}»` : ''}
+          </p>
+        )}
       </div>
 
       {isOwner && (

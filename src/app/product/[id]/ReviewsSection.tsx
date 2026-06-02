@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getProductReviews, getProductRatingStats } from '@/lib/reviews-db';
 import { formatOrderDate } from '@/lib/order-format';
 
@@ -48,6 +49,21 @@ export default function ReviewsSection({ productId }: { productId: number }) {
                 </div>
                 <StarRow rating={r.rating} />
                 {r.comment && <p className="text-sm mt-2 whitespace-pre-wrap">{r.comment}</p>}
+                {r.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {r.images.map((src, i) => (
+                      <a
+                        key={i}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative w-20 h-20 rounded-lg overflow-hidden border border-border hover:opacity-90"
+                      >
+                        <Image src={src} alt={`Үнэлгээний зураг ${i + 1}`} fill sizes="80px" className="object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

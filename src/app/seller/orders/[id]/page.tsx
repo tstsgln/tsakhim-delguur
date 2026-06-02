@@ -64,6 +64,19 @@ export default async function SellerOrderDetailPage({ params }: PageProps) {
         )}
       </div>
 
+      {order.is_gift === 1 && (
+        <div className="bg-pink-50 border border-pink-200 rounded-xl p-5 mb-5">
+          <h2 className="font-bold mb-1 text-pink-800">🎁 Энэ бол бэлэг</h2>
+          <p className="text-sm text-pink-700">Боломжтой бол баглаа боодлыг бэлгэнд тохируулна уу.</p>
+          {order.gift_message && (
+            <div className="mt-3 bg-white border border-pink-200 rounded-lg p-3">
+              <p className="text-xs text-pink-600 mb-1">Бэлгийн захидал — баглаандаа хавсаргана уу:</p>
+              <p className="text-sm whitespace-pre-wrap italic">«{order.gift_message}»</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="bg-surface border border-border rounded-xl p-5 mb-5">
         <h2 className="font-bold mb-3">Бараа</h2>
         <div className="space-y-3">

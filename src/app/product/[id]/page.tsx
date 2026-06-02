@@ -2,12 +2,13 @@ import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProductDetail, getAllProducts, getSellerStats } from '@/lib/products-db';
+import { getProductDetail, getRelatedProducts, getMoreFromSeller, getSellerStats } from '@/lib/products-db';
 import { categories } from '@/lib/data';
 import { getSessionUser } from '@/lib/session';
 import { db } from '@/lib/db';
 import { SITE_URL, SITE_NAME } from '@/lib/site';
 import ProductCard from '@/components/ProductCard';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import ProductDetail from './ProductDetail';
 import ReviewsSection from './ReviewsSection';
 
@@ -99,9 +100,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
     isOwnStore = row?.user_id === user.id;
   }
 
-  const related = getAllProducts()
-    .filter(p => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
+  const moreFromSeller = getMoreFromSeller(seller.id, numericId, 4);
+  const related = getRelatedProducts(numericId, product.category, 4);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -128,8 +128,24 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
       <ReviewsSection productId={numericId} />
 
+      {moreFromSeller.length > 0 && (
+        <section className="mb-12">
+          <div className="flex items-baseline justify-between mb-6">
+            <h2 className="text-xl font-bold">{seller.storeName}-ийн бусад бараа</h2>
+            <Link href={`/store/${seller.id}`} className="text-sm text-primary hover:underline">
+              Дэлгүүр үзэх →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {moreFromSeller.map(p => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {related.length > 0 && (
-        <section>
+        <section className="mb-12">
           <h2 className="text-xl font-bold mb-6">Төстэй бүтээгдэхүүн</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {related.map(p => (
@@ -138,6 +154,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </div>
         </section>
       )}
+
+      <RecentlyViewed record={product} excludeId={product.id} limit={4} />
     </div>
   );
 }

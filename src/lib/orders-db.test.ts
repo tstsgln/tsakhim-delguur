@@ -127,6 +127,40 @@ describe('createOrdersFromCart', () => {
     expect(summaries).toHaveLength(2);
     expect(summaries.map(s => s.subtotal).sort((x, y) => x - y)).toEqual([1000, 2000]);
   });
+
+  it('stores gift flag and message on the order', () => {
+    const { sellerId } = createSeller('S', 's@x.mn');
+    const productId = createProduct(sellerId, 1000, 5);
+    const buyerId = createUser('Buyer', 'buyer@x.mn');
+
+    const [summary] = createOrdersFromCart({
+      buyerUserId: buyerId,
+      lines: [{ productId, quantity: 1 }],
+      ...checkoutMeta,
+      isGift: true,
+      giftMessage: '  Төрсөн өдрийн мэнд  ',
+    });
+    const order = getOrder(summary.orderId)!;
+    expect(order.is_gift).toBe(1);
+    expect(order.gift_message).toBe('Төрсөн өдрийн мэнд'); // trimmed
+  });
+
+  it('does not keep a gift message when not marked as a gift', () => {
+    const { sellerId } = createSeller('S', 's@x.mn');
+    const productId = createProduct(sellerId, 1000, 5);
+    const buyerId = createUser('Buyer', 'buyer@x.mn');
+
+    const [summary] = createOrdersFromCart({
+      buyerUserId: buyerId,
+      lines: [{ productId, quantity: 1 }],
+      ...checkoutMeta,
+      isGift: false,
+      giftMessage: 'should be ignored',
+    });
+    const order = getOrder(summary.orderId)!;
+    expect(order.is_gift).toBe(0);
+    expect(order.gift_message).toBeNull();
+  });
 });
 
 describe('order lifecycle + escrow release', () => {

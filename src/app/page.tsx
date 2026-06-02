@@ -1,12 +1,20 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
+import RecentlyViewed from '@/components/RecentlyViewed';
 import { categories } from '@/lib/data';
-import { getAllProducts } from '@/lib/products-db';
+import { getAllProducts, getCategoryCounts } from '@/lib/products-db';
 
 export default async function HomePage() {
   const products = getAllProducts();
   const latestProducts = products.slice(0, 8);
   const totalProducts = products.length;
+
+  // Only surface categories that actually have products, most-stocked first.
+  const categoryCounts = getCategoryCounts();
+  const browseCategories = categories
+    .map(c => ({ ...c, count: categoryCounts[c.id] ?? 0 }))
+    .filter(c => c.count > 0)
+    .sort((a, b) => b.count - a.count);
 
   return (
     <div className="bg-background">
@@ -25,6 +33,31 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Browse by category */}
+      {browseCategories.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 pt-10">
+          <div className="flex flex-wrap justify-between items-end gap-4 mb-6">
+            <h2 className="text-3xl font-bold">Ангилалаар үзэх</h2>
+            <Link href="/products" className="text-primary hover:underline text-sm font-semibold">
+              Бүх бүтээгдэхүүн →
+            </Link>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+            {browseCategories.map(cat => (
+              <Link
+                key={cat.id}
+                href={`/products?category=${cat.id}`}
+                className="group flex flex-col items-center text-center gap-2 bg-surface border border-border rounded-2xl p-4 hover:border-primary hover:shadow-md transition-all"
+              >
+                <span className="text-3xl md:text-4xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+                <span className="text-xs md:text-sm font-medium leading-tight">{cat.name}</span>
+                <span className="text-xs text-muted">{cat.count}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Latest Products */}
       <section className="max-w-7xl mx-auto px-4 pt-10 pb-16">
@@ -61,6 +94,11 @@ export default async function HomePage() {
               </Link>
             </div>
           )}
+      </section>
+
+      {/* Recently viewed (client-side, hidden when empty) */}
+      <section className="max-w-7xl mx-auto px-4 pb-4">
+        <RecentlyViewed title="Таны сүүлд үзсэн" limit={4} />
       </section>
 
       {/* Why us */}

@@ -49,11 +49,24 @@ export default function ReviewForm({ orderItemId }: Props) {
         placeholder="Сэтгэгдэл (заавал биш)"
         className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary bg-surface"
       />
+      <div className="mt-2">
+        <label className="block text-xs text-muted mb-1">📷 Зураг хавсаргах (заавал биш, 4 хүртэл)</label>
+        <input
+          type="file"
+          name="images"
+          accept="image/*"
+          multiple
+          className="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-primary-light/30 file:text-foreground file:cursor-pointer"
+        />
+      </div>
       {state?.errors?.form?.[0] && (
         <p className="text-xs text-red-600 mt-1">{state.errors.form[0]}</p>
       )}
       {state?.errors?.rating?.[0] && (
         <p className="text-xs text-red-600 mt-1">{state.errors.rating[0]}</p>
+      )}
+      {state?.errors?.images?.[0] && (
+        <p className="text-xs text-red-600 mt-1">{state.errors.images[0]}</p>
       )}
       <button
         type="submit"

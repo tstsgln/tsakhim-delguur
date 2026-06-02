@@ -23,7 +23,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 19;
+const SCHEMA_VERSION = 21;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -124,6 +124,8 @@ if (currentVersion < SCHEMA_VERSION) {
       buyer_phone TEXT NOT NULL,
       shipping_address TEXT NOT NULL,
       buyer_note TEXT,
+      is_gift INTEGER NOT NULL DEFAULT 0,
+      gift_message TEXT,
       paid_at TEXT,
       shipped_at TEXT,
       completed_at TEXT,
@@ -196,6 +198,14 @@ if (currentVersion < SCHEMA_VERSION) {
     );
     CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS review_images (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      review_id INTEGER NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+      path TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_review_images_review ON review_images(review_id);
 
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -293,6 +303,14 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (productCols.length > 0 && !productCols.some(c => c.name === 'archived_at')) {
     db.exec('ALTER TABLE products ADD COLUMN archived_at TEXT');
+  }
+
+  const orderCols = db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>;
+  if (orderCols.length > 0 && !orderCols.some(c => c.name === 'is_gift')) {
+    db.exec('ALTER TABLE orders ADD COLUMN is_gift INTEGER NOT NULL DEFAULT 0');
+  }
+  if (orderCols.length > 0 && !orderCols.some(c => c.name === 'gift_message')) {
+    db.exec('ALTER TABLE orders ADD COLUMN gift_message TEXT');
   }
 
   db.pragma(`user_version = ${SCHEMA_VERSION}`);

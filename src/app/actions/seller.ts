@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { getSessionUser } from '@/lib/session';
 import type { SellerRow } from '@/lib/types';
+import { ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_EXTS, EXT_TO_MIME, MAX_IMAGE_BYTES } from '@/lib/uploads';
 
 const SellerSchema = z.object({
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
@@ -140,16 +141,6 @@ export type ProductState =
     }
   | undefined;
 
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-const ALLOWED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
-const EXT_TO_MIME: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-};
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export async function updateProductInventory(formData: FormData) {
   const user = await getSessionUser();

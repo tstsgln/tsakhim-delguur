@@ -195,11 +195,18 @@ export async function deleteAccount(
       `SELECT image_path AS p FROM messages WHERE sender_user_id = ? AND image_path IS NOT NULL`,
     )
     .all(user.id) as Array<{ p: string }>;
+  const reviewImages = db
+    .prepare(
+      `SELECT ri.path AS p FROM review_images ri
+       JOIN reviews r ON r.id = ri.review_id
+       WHERE r.user_id = ?`,
+    )
+    .all(user.id) as Array<{ p: string }>;
 
   db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
 
   const publicDir = path.join(process.cwd(), 'public');
-  for (const { p } of [...productImages, ...chatImages]) {
+  for (const { p } of [...productImages, ...chatImages, ...reviewImages]) {
     if (!p.startsWith('/uploads/')) continue;
     try {
       await fs.unlink(path.join(publicDir, p));

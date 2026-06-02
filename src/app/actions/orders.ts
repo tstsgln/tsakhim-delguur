@@ -28,6 +28,8 @@ const CheckoutSchema = z.object({
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   shippingAddress: z.string().trim().min(5, 'Хаягаа дэлгэрэнгүй бичнэ үү'),
   note: z.string().trim().optional(),
+  isGift: z.boolean().optional(),
+  giftMessage: z.string().trim().max(500, 'Захидал хэт урт байна').optional(),
 });
 
 const CartLineSchema = z.object({
@@ -74,6 +76,8 @@ export async function checkout(_state: CheckoutState, formData: FormData): Promi
     phone: formData.get('phone'),
     shippingAddress: formData.get('shippingAddress'),
     note: formData.get('note') ?? '',
+    isGift: formData.get('isGift') === 'on',
+    giftMessage: formData.get('giftMessage') ?? '',
   });
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors };
@@ -87,6 +91,8 @@ export async function checkout(_state: CheckoutState, formData: FormData): Promi
       phone: parsed.data.phone,
       shippingAddress: parsed.data.shippingAddress,
       note: parsed.data.note,
+      isGift: parsed.data.isGift,
+      giftMessage: parsed.data.giftMessage,
     });
     orderIds = summaries.map(s => s.orderId);
   } catch (err) {

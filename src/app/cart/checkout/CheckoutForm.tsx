@@ -12,6 +12,7 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
   const router = useRouter();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(checkout, undefined);
   const [mounted, setMounted] = useState(false);
+  const [isGift, setIsGift] = useState(false);
   const successHandled = useRef(false);
 
   useEffect(() => setMounted(true), []);
@@ -94,6 +95,34 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
               />
             </div>
           </div>
+        </div>
+
+        <div className="bg-surface border border-border rounded-xl p-5">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              name="isGift"
+              checked={isGift}
+              onChange={e => setIsGift(e.target.checked)}
+              className="w-4 h-4 accent-primary"
+            />
+            <span className="font-bold">🎁 Бэлэг болгож авч байна</span>
+          </label>
+          {isGift && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">Бэлгийн захидал (заавал биш)</label>
+              <textarea
+                name="giftMessage"
+                rows={2}
+                maxLength={500}
+                placeholder="Хүлээн авагчид өгөх захидал — борлуулагч баглаанд хавсаргана"
+                className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
+              />
+              <p className="text-xs text-muted mt-1">
+                Борлуулагч захиалгыг бэлэг болохыг харж, захидлыг баглаандаа оруулна.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-5">

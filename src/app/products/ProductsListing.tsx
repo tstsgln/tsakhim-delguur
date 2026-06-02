@@ -39,6 +39,13 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
   const [sort, setSort] = useState<SortOption>('newest');
   const [selectedCategory, setSelectedCategory] = useState(categoryParam || '');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000000]);
+  const [selectedLocation, setSelectedLocation] = useState('');
+
+  // Distinct seller locations present in the catalog, alphabetical.
+  const locations = useMemo(
+    () => [...new Set(products.map(p => p.seller.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'mn')),
+    [products],
+  );
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -54,6 +61,10 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
 
     if (selectedCategory) {
       result = result.filter(p => p.category === selectedCategory);
+    }
+
+    if (selectedLocation) {
+      result = result.filter(p => p.seller.location === selectedLocation);
     }
 
     result = result.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
@@ -77,7 +88,7 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
     }
 
     return result;
-  }, [products, searchQuery, selectedCategory, sort, priceRange]);
+  }, [products, searchQuery, selectedCategory, selectedLocation, sort, priceRange]);
 
   const currentCategory = categories.find(c => c.id === selectedCategory);
 
@@ -88,7 +99,7 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
   // Reset to the first page whenever the result set changes (filter/sort/search).
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, selectedCategory, sort, priceRange]);
+  }, [searchQuery, selectedCategory, selectedLocation, sort, priceRange]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -180,13 +191,22 @@ export default function ProductsListing({ products, categoryCounts, matchingStor
               </div>
             </div>
 
-            {/* Free shipping */}
-            <div>
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="accent-primary" />
-                Үнэгүй хүргэлт
-              </label>
-            </div>
+            {/* Location filter */}
+            {locations.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Байршил</h4>
+                <select
+                  value={selectedLocation}
+                  onChange={e => setSelectedLocation(e.target.value)}
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-surface focus:outline-none focus:border-primary"
+                >
+                  <option value="">Бүх байршил</option>
+                  {locations.map(loc => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </aside>
 
