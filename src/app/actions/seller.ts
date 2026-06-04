@@ -22,6 +22,7 @@ const SellerSchema = z.object({
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   location: z.string().trim().min(1, 'Байршил шаардлагатай'),
+  pickupAddress: z.string().trim().min(5, 'Очиж авах хаягаа дэлгэрэнгүй бичнэ үү'),
   description: z.string().trim().optional(),
   agreed: z.literal('on', { error: 'Үйлчилгээний нөхцөлийг зөвшөөрөх шаардлагатай' }),
 });
@@ -46,6 +47,7 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
     storeName: formData.get('storeName'),
     phone: formData.get('phone'),
     location: formData.get('location'),
+    pickupAddress: formData.get('pickupAddress'),
     description: formData.get('description') ?? '',
     agreed: formData.get('agreed'),
   });
@@ -57,13 +59,14 @@ export async function becomeSeller(_state: SellerState, formData: FormData): Pro
   const data = parsed.data;
 
   const result = db.prepare(
-    `INSERT INTO sellers (user_id, store_name, phone, location, description)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO sellers (user_id, store_name, phone, location, pickup_address, description)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(
     user.id,
     data.storeName,
     data.phone,
     data.location,
+    data.pickupAddress,
     data.description || null,
   );
   const newStoreId = Number(result.lastInsertRowid);
@@ -77,6 +80,7 @@ const UpdateSellerSchema = z.object({
   storeName: z.string().trim().min(2, 'Дэлгүүрийн нэр доод тал нь 2 тэмдэгт'),
   phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
   location: z.string().trim().min(1, 'Байршил шаардлагатай'),
+  pickupAddress: z.string().trim().min(5, 'Очиж авах хаягаа дэлгэрэнгүй бичнэ үү'),
   description: z.string().trim().optional(),
   story: z.string().trim().max(4000, 'Түүх хэт урт байна').optional(),
 });
@@ -98,6 +102,7 @@ export async function updateSeller(_state: UpdateSellerState, formData: FormData
     storeName: formData.get('storeName'),
     phone: formData.get('phone'),
     location: formData.get('location'),
+    pickupAddress: formData.get('pickupAddress'),
     description: formData.get('description') ?? '',
     story: formData.get('story') ?? '',
   });
@@ -127,11 +132,12 @@ export async function updateSeller(_state: UpdateSellerState, formData: FormData
   }
 
   db.prepare(
-    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, description = ?, story = ?, banner_path = ? WHERE id = ?`,
+    `UPDATE sellers SET store_name = ?, phone = ?, location = ?, pickup_address = ?, description = ?, story = ?, banner_path = ? WHERE id = ?`,
   ).run(
     data.storeName,
     data.phone,
     data.location,
+    data.pickupAddress,
     data.description || null,
     data.story || null,
     bannerPath,

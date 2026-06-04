@@ -27,6 +27,7 @@ export interface OrderRow {
   payment_ref: string | null;
   buyer_phone: string;
   shipping_address: string;
+  delivery_method: string;
   buyer_note: string | null;
   is_gift: number;
   gift_message: string | null;
@@ -90,6 +91,7 @@ export interface CheckoutInput {
   lines: CartLine[];
   phone: string;
   shippingAddress: string;
+  deliveryMethod?: 'delivery' | 'pickup';
   note?: string;
   isGift?: boolean;
   giftMessage?: string;
@@ -129,11 +131,12 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
     INSERT INTO orders (
       buyer_user_id, seller_id, status, subtotal,
       commission_rate, commission_amount, seller_amount,
-      payment_method, buyer_phone, shipping_address, buyer_note,
+      payment_method, buyer_phone, shipping_address, delivery_method, buyer_note,
       is_gift, gift_message
-    ) VALUES (?, ?, 'pending_payment', ?, ?, ?, ?, 'mock', ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, 'pending_payment', ?, ?, ?, ?, 'mock', ?, ?, ?, ?, ?, ?)
   `);
 
+  const deliveryMethod = input.deliveryMethod === 'pickup' ? 'pickup' : 'delivery';
   const isGift = input.isGift ? 1 : 0;
   const giftMessage = input.isGift ? (input.giftMessage?.trim() || null) : null;
   const insertItem = db.prepare(`
@@ -162,6 +165,7 @@ export function createOrdersFromCart(input: CheckoutInput): CreatedOrderSummary[
         sellerAmount,
         input.phone.trim(),
         input.shippingAddress.trim(),
+        deliveryMethod,
         input.note?.trim() || null,
         isGift,
         giftMessage,

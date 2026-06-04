@@ -73,6 +73,7 @@ export default async function SellerDashboard({ searchParams }: PageProps) {
           store_name: active.store_name,
           phone: active.phone,
           location: active.location,
+          pickup_address: active.pickup_address,
           description: active.description,
           story: active.story,
           banner_path: active.banner_path,

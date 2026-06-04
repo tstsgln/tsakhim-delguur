@@ -34,8 +34,9 @@ export default async function PurchaseDetailPage({ params }: PageProps) {
   const items = getOrderItems(orderId);
   const reviews = isOwner && order.status === 'completed' ? getReviewsForOrder(orderId) : new Map();
   const seller = db
-    .prepare('SELECT store_name, phone, location FROM sellers WHERE id = ?')
-    .get(order.seller_id) as { store_name: string; phone: string; location: string } | undefined;
+    .prepare('SELECT store_name, phone, location, pickup_address FROM sellers WHERE id = ?')
+    .get(order.seller_id) as { store_name: string; phone: string; location: string; pickup_address: string | null } | undefined;
+  const isPickup = order.delivery_method === 'pickup';
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -143,8 +144,22 @@ export default async function PurchaseDetailPage({ params }: PageProps) {
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-5 mb-5">
-        <h2 className="font-bold mb-3">Хүргэлт</h2>
-        <p className="text-sm whitespace-pre-wrap">{order.shipping_address}</p>
+        {isPickup ? (
+          <>
+            <h2 className="font-bold mb-3">🏪 Очиж авах</h2>
+            <p className="text-sm whitespace-pre-wrap">
+              {seller?.pickup_address || 'Очиж авах хаягийг борлуулагчтай чатаар тодруулна уу.'}
+            </p>
+            <p className="text-xs text-muted mt-2">
+              Очиж авах цагаа борлуулагчтай чатаар тохирно уу.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="font-bold mb-3">Хүргэлт</h2>
+            <p className="text-sm whitespace-pre-wrap">{order.shipping_address}</p>
+          </>
+        )}
         <p className="text-sm text-muted mt-2">📞 {order.buyer_phone}</p>
         {order.buyer_note && (
           <p className="text-sm text-muted mt-2 italic">«{order.buyer_note}»</p>

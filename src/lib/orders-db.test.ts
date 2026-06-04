@@ -86,6 +86,28 @@ describe('createOrdersFromCart', () => {
     expect(stockOf(productId)).toBe(8);
   });
 
+  it('defaults to delivery, and records pickup when requested', () => {
+    const { sellerId } = createSeller('S', 's@x.mn');
+    const productId = createProduct(sellerId, 1000, 10);
+    const buyerId = createUser('B', 'b@x.mn');
+
+    const [delivery] = createOrdersFromCart({
+      buyerUserId: buyerId,
+      lines: [{ productId, quantity: 1 }],
+      ...checkoutMeta,
+    });
+    expect(getOrder(delivery.orderId)!.delivery_method).toBe('delivery');
+
+    const [pickup] = createOrdersFromCart({
+      buyerUserId: buyerId,
+      lines: [{ productId, quantity: 1 }],
+      phone: '99119911',
+      shippingAddress: '',
+      deliveryMethod: 'pickup',
+    });
+    expect(getOrder(pickup.orderId)!.delivery_method).toBe('pickup');
+  });
+
   it('floors commission for non-divisible subtotals (integer money math)', () => {
     const { sellerId } = createSeller('S', 's@x.mn');
     const productId = createProduct(sellerId, 99, 5);

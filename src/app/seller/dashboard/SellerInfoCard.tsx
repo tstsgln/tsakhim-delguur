@@ -12,6 +12,7 @@ interface Props {
     store_name: string;
     phone: string;
     location: string;
+    pickup_address: string | null;
     description: string | null;
     story: string | null;
     banner_path: string | null;
@@ -66,6 +67,17 @@ export default function SellerInfoCard({ storeId, seller }: Props) {
               </select>
               {errors?.location?.[0] && <p className="text-xs text-red-600 mt-1">{errors.location[0]}</p>}
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Очиж авах хаяг</label>
+            <textarea
+              name="pickupAddress"
+              rows={2}
+              defaultValue={seller.pickup_address ?? ''}
+              placeholder="Дүүрэг, хороо, гудамж, байр, тоот — худалдан авагч очиж авах хаяг"
+              className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
+            />
+            {errors?.pickupAddress?.[0] && <p className="text-xs text-red-600 mt-1">{errors.pickupAddress[0]}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Нэмэлт мэдээлэл</label>
@@ -127,6 +139,9 @@ export default function SellerInfoCard({ storeId, seller }: Props) {
             <p className="text-sm text-muted mt-1">
               📍 {seller.location} · 📞 {seller.phone}
             </p>
+            {seller.pickup_address && (
+              <p className="text-sm text-muted mt-1">🏪 Очиж авах: {seller.pickup_address}</p>
+            )}
             {seller.description && (
               <p className="text-sm text-muted mt-2 max-w-2xl">{seller.description}</p>
             )}

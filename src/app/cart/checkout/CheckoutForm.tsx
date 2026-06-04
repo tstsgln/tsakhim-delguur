@@ -13,6 +13,7 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
   const [state, action, pending] = useActionState<CheckoutState, FormData>(checkout, undefined);
   const [mounted, setMounted] = useState(false);
   const [isGift, setIsGift] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<'delivery' | 'pickup'>('delivery');
   const successHandled = useRef(false);
 
   useEffect(() => setMounted(true), []);
@@ -62,7 +63,30 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
     <form action={action} className="grid lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
         <div className="bg-surface border border-border rounded-xl p-5">
-          <h2 className="font-bold mb-4">Хүргэлтийн мэдээлэл</h2>
+          <h2 className="font-bold mb-4">Хүлээн авах хэлбэр</h2>
+          <input type="hidden" name="deliveryMethod" value={deliveryMethod} />
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => setDeliveryMethod('delivery')}
+              className={`border rounded-lg p-3 text-left transition-colors ${
+                deliveryMethod === 'delivery' ? 'border-primary bg-primary-light/15' : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <span className="font-medium">🚚 Хүргүүлэх</span>
+              <span className="block text-xs text-muted mt-0.5">Борлуулагч таны хаягаар хүргэнэ</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryMethod('pickup')}
+              className={`border rounded-lg p-3 text-left transition-colors ${
+                deliveryMethod === 'pickup' ? 'border-primary bg-primary-light/15' : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <span className="font-medium">🏪 Очиж авах</span>
+              <span className="block text-xs text-muted mt-0.5">Борлуулагчийн хаягаар очиж авна</span>
+            </button>
+          </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Утасны дугаар</label>
@@ -77,19 +101,27 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
                 <p className="text-xs text-red-600 mt-1">{state.errors.phone[0]}</p>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Хүргэлтийн хаяг</label>
-              <textarea
-                name="shippingAddress"
-                rows={3}
-                required
-                placeholder="Хот/Аймаг, дүүрэг, баг/хороо, гудамж, байр, тоот..."
-                className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
-              />
-              {state?.errors?.shippingAddress?.[0] && (
-                <p className="text-xs text-red-600 mt-1">{state.errors.shippingAddress[0]}</p>
-              )}
-            </div>
+            {deliveryMethod === 'delivery' ? (
+              <div>
+                <label className="block text-sm font-medium mb-1">Хүргэлтийн хаяг</label>
+                <textarea
+                  name="shippingAddress"
+                  rows={3}
+                  required
+                  placeholder="Хот/Аймаг, дүүрэг, баг/хороо, гудамж, байр, тоот..."
+                  className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
+                />
+                {state?.errors?.shippingAddress?.[0] && (
+                  <p className="text-xs text-red-600 mt-1">{state.errors.shippingAddress[0]}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted bg-primary-light/10 border border-border rounded-lg p-3">
+                🏪 Та барааг борлуулагчийн хаягаар өөрөө очиж авна. Очиж авах хаяг болон цагийг
+                захиалга баталгаажсаны дараа захиалгын дэлгэрэнгүйгээс харах ба борлуулагчтай
+                чатаар тодруулна.
+              </p>
+            )}
             <div>
               <label className="block text-sm font-medium mb-1">Нэмэлт тэмдэглэл (заавал биш)</label>
               <textarea

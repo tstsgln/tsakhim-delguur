@@ -57,8 +57,17 @@ export default async function SellerOrderDetailPage({ params }: PageProps) {
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-5 mb-5">
-        <h2 className="font-bold mb-3">📍 Хүргэлтийн хаяг</h2>
-        <p className="text-sm whitespace-pre-wrap">{order.shipping_address}</p>
+        {order.delivery_method === 'pickup' ? (
+          <>
+            <h2 className="font-bold mb-3">🏪 Хүлээн авах хэлбэр</h2>
+            <p className="text-sm">Худалдан авагч очиж авна. Очиж авах цагийг чатаар тохирно уу.</p>
+          </>
+        ) : (
+          <>
+            <h2 className="font-bold mb-3">📍 Хүргэлтийн хаяг</h2>
+            <p className="text-sm whitespace-pre-wrap">{order.shipping_address}</p>
+          </>
+        )}
         {order.buyer_note && (
           <p className="text-sm text-muted mt-2 italic">«{order.buyer_note}»</p>
         )}

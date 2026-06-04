@@ -24,13 +24,21 @@ import {
   notifyOrderReceived,
 } from '@/lib/order-notifications';
 
-const CheckoutSchema = z.object({
-  phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
-  shippingAddress: z.string().trim().min(5, 'Хаягаа дэлгэрэнгүй бичнэ үү'),
-  note: z.string().trim().optional(),
-  isGift: z.boolean().optional(),
-  giftMessage: z.string().trim().max(500, 'Захидал хэт урт байна').optional(),
-});
+const CheckoutSchema = z
+  .object({
+    phone: z.string().trim().min(6, 'Утасны дугаар буруу'),
+    deliveryMethod: z.enum(['delivery', 'pickup']).default('delivery'),
+    shippingAddress: z.string().trim().default(''),
+    note: z.string().trim().optional(),
+    isGift: z.boolean().optional(),
+    giftMessage: z.string().trim().max(500, 'Захидал хэт урт байна').optional(),
+  })
+  .superRefine((val, ctx) => {
+    // Address is only required for delivery; pickup uses the seller's address.
+    if (val.deliveryMethod === 'delivery' && val.shippingAddress.length < 5) {
+      ctx.addIssue({ code: 'custom', path: ['shippingAddress'], message: 'Хаягаа дэлгэрэнгүй бичнэ үү' });
+    }
+  });
 
 const CartLineSchema = z.object({
   productId: z.number().int().positive(),
@@ -76,7 +84,8 @@ export async function checkout(_state: CheckoutState, formData: FormData): Promi
 
   const parsed = CheckoutSchema.safeParse({
     phone: formData.get('phone'),
-    shippingAddress: formData.get('shippingAddress'),
+    deliveryMethod: formData.get('deliveryMethod') ?? 'delivery',
+    shippingAddress: formData.get('shippingAddress') ?? '',
     note: formData.get('note') ?? '',
     isGift: formData.get('isGift') === 'on',
     giftMessage: formData.get('giftMessage') ?? '',
@@ -92,6 +101,7 @@ export async function checkout(_state: CheckoutState, formData: FormData): Promi
       lines: parsedCart,
       phone: parsed.data.phone,
       shippingAddress: parsed.data.shippingAddress,
+      deliveryMethod: parsed.data.deliveryMethod,
       note: parsed.data.note,
       isGift: parsed.data.isGift,
       giftMessage: parsed.data.giftMessage,

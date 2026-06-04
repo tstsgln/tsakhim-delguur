@@ -83,6 +83,7 @@ export interface SellerRow {
   store_name: string;
   phone: string;
   location: string;
+  pickup_address: string | null;
   description: string | null;
   story: string | null;
   banner_path: string | null;

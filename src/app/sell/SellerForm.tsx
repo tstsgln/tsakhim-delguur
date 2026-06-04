@@ -47,6 +47,20 @@ export default function SellerForm() {
       </div>
 
       <div>
+        <label className="block text-sm font-medium mb-1">Очиж авах хаяг</label>
+        <textarea
+          name="pickupAddress"
+          rows={2}
+          placeholder="Дүүрэг, хороо, гудамж, байр, тоот — худалдан авагч очиж авах хаяг"
+          className="w-full border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-primary resize-none"
+        />
+        <p className="text-xs text-muted mt-1">
+          Хүргэлтийг та өөрөө хариуцна. Очиж авахыг сонгосон худалдан авагчид энэ хаягийг харна.
+        </p>
+        {errors?.pickupAddress?.[0] && <p className="text-xs text-red-600 mt-1">{errors.pickupAddress[0]}</p>}
+      </div>
+
+      <div>
         <label className="block text-sm font-medium mb-1">Нэмэлт мэдээлэл</label>
         <textarea
           name="description"

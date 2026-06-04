@@ -23,7 +23,7 @@ if (!global.__sqliteDb) {
   global.__sqliteDb = db;
 }
 
-const SCHEMA_VERSION = 24;
+const SCHEMA_VERSION = 25;
 const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
 if (currentVersion < SCHEMA_VERSION) {
   db.exec(`
@@ -52,6 +52,7 @@ if (currentVersion < SCHEMA_VERSION) {
       store_name TEXT NOT NULL,
       phone TEXT NOT NULL,
       location TEXT NOT NULL,
+      pickup_address TEXT,
       description TEXT,
       story TEXT,
       banner_path TEXT,
@@ -127,6 +128,7 @@ if (currentVersion < SCHEMA_VERSION) {
       payment_ref TEXT,
       buyer_phone TEXT NOT NULL,
       shipping_address TEXT NOT NULL,
+      delivery_method TEXT NOT NULL DEFAULT 'delivery',
       buyer_note TEXT,
       is_gift INTEGER NOT NULL DEFAULT 0,
       gift_message TEXT,
@@ -348,6 +350,9 @@ if (currentVersion < SCHEMA_VERSION) {
   if (sellerCols2.length > 0 && !sellerCols2.some(c => c.name === 'banner_path')) {
     db.exec('ALTER TABLE sellers ADD COLUMN banner_path TEXT');
   }
+  if (sellerCols2.length > 0 && !sellerCols2.some(c => c.name === 'pickup_address')) {
+    db.exec('ALTER TABLE sellers ADD COLUMN pickup_address TEXT');
+  }
 
   const orderCols = db.prepare("PRAGMA table_info(orders)").all() as Array<{ name: string }>;
   if (orderCols.length > 0 && !orderCols.some(c => c.name === 'is_gift')) {
@@ -355,6 +360,9 @@ if (currentVersion < SCHEMA_VERSION) {
   }
   if (orderCols.length > 0 && !orderCols.some(c => c.name === 'gift_message')) {
     db.exec('ALTER TABLE orders ADD COLUMN gift_message TEXT');
+  }
+  if (orderCols.length > 0 && !orderCols.some(c => c.name === 'delivery_method')) {
+    db.exec("ALTER TABLE orders ADD COLUMN delivery_method TEXT NOT NULL DEFAULT 'delivery'");
   }
 
   db.pragma(`user_version = ${SCHEMA_VERSION}`);
