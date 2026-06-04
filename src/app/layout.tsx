@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import UnverifiedBanner from "@/components/UnverifiedBanner";
 import ScrollToTopOnLoad from "@/components/ScrollToTopOnLoad";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import PageTransition from "@/components/PageTransition";
 import { CartProvider } from "@/lib/cart-context";
 import { FavoritesProvider } from "@/lib/favorites-context";
@@ -39,6 +40,17 @@ export const metadata: Metadata = {
     title: "Цэцэглэн - Монгол гар урлалын зах зээл",
     description: SITE_DESCRIPTION,
   },
+  // iOS standalone (Add to Home Screen) behaviour — keeps a future iOS package on the same metadata.
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#c2185b",
+  colorScheme: "light",
 };
 
 export default async function RootLayout({
@@ -57,6 +69,7 @@ export default async function RootLayout({
     <html lang="mn" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <ScrollToTopOnLoad />
+        <ServiceWorkerRegister />
         <CartProvider>
           <FavoritesProvider isLoggedIn={!!user}>
             <Header user={user} isSeller={isSeller} unreadCount={unreadCount} notificationCount={notificationCount} isAdmin={userIsAdmin} />
