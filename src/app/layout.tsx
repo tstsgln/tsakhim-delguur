@@ -3,6 +3,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import UnverifiedBanner from "@/components/UnverifiedBanner";
+import ScrollToTopOnLoad from "@/components/ScrollToTopOnLoad";
+import PageTransition from "@/components/PageTransition";
 import { CartProvider } from "@/lib/cart-context";
 import { FavoritesProvider } from "@/lib/favorites-context";
 import { getSessionUser } from "@/lib/session";
@@ -54,11 +56,12 @@ export default async function RootLayout({
   return (
     <html lang="mn" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <ScrollToTopOnLoad />
         <CartProvider>
           <FavoritesProvider isLoggedIn={!!user}>
             <Header user={user} isSeller={isSeller} unreadCount={unreadCount} notificationCount={notificationCount} isAdmin={userIsAdmin} />
             {user && !user.emailVerified && <UnverifiedBanner email={user.email} />}
-            <main className="flex-1">{children}</main>
+            <main className="flex-1"><PageTransition>{children}</PageTransition></main>
             <Footer />
           </FavoritesProvider>
         </CartProvider>
