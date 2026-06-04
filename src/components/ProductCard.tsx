@@ -49,11 +49,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               -{discount}%
             </span>
           )}
-          {product.isFreeShipping && (
-            <span className="absolute bottom-2 left-2 bg-success text-white text-xs px-2 py-1 rounded-full z-10">
-              🚚 Үнэгүй хүргэлт
-            </span>
-          )}
           {soldOut && (
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
               <span className="bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-full">

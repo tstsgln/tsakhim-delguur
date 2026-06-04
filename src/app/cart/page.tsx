@@ -22,9 +22,6 @@ export default function CartPage() {
     );
   }
 
-  const shippingCost = totalPrice >= 100000 ? 0 : 5000;
-  const grandTotal = totalPrice + shippingCost;
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">🛒 Миний сагс ({items.length} бараа)</h1>
@@ -106,20 +103,12 @@ export default function CartPage() {
                 <span className="text-muted">Бараа ({items.length})</span>
                 <span>{formatPrice(totalPrice)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Хүргэлт</span>
-                <span className={shippingCost === 0 ? 'text-success' : ''}>
-                  {shippingCost === 0 ? 'Үнэгүй' : formatPrice(shippingCost)}
-                </span>
-              </div>
-              {shippingCost > 0 && (
-                <p className="text-xs text-accent">
-                  💡 {formatPrice(100000 - totalPrice)}-г нэмбэл хүргэлт үнэгүй!
-                </p>
-              )}
+              <p className="text-xs text-muted">
+                Хүргэлтийг борлуулагч өөрөө хариуцна. Дэлгэрэнгүйг борлуулагчтай чатаар тохирно.
+              </p>
               <div className="border-t border-border pt-3 flex justify-between font-bold text-lg">
                 <span>Нийт</span>
-                <span className="text-primary">{formatPrice(grandTotal)}</span>
+                <span className="text-primary">{formatPrice(totalPrice)}</span>
               </div>
             </div>
 

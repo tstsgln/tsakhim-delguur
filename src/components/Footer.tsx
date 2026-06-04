@@ -31,7 +31,6 @@ export default function Footer() {
             <h4 className="font-semibold mb-3">Тусламж</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li><Link href="/about" className="hover:text-white transition-colors">Бидний тухай</Link></li>
-              <li><Link href="/about" className="hover:text-white transition-colors">Хүргэлтийн мэдээлэл</Link></li>
               <li><Link href="/about" className="hover:text-white transition-colors">Буцаалтын бодлого</Link></li>
               <li><Link href="/about" className="hover:text-white transition-colors">Холбоо барих</Link></li>
               <li><Link href="/feedback" className="hover:text-white transition-colors">Санал, гомдол</Link></li>

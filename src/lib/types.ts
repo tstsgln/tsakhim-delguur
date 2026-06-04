@@ -13,7 +13,6 @@ export interface Product {
   tags: string[];
   isFeatured?: boolean;
   isNew?: boolean;
-  isFreeShipping?: boolean;
   createdAt: string;
   stockQuantity: number;
   acceptCustomOrders: boolean;

@@ -7,7 +7,6 @@ import { getAllProducts, getCategoryCounts } from '@/lib/products-db';
 export default async function HomePage() {
   const products = getAllProducts();
   const latestProducts = products.slice(0, 8);
-  const totalProducts = products.length;
 
   // Only surface categories that actually have products, most-stocked first.
   const categoryCounts = getCategoryCounts();
@@ -112,7 +111,7 @@ export default async function HomePage() {
           {[
             { icon: '🇲🇳', title: 'Жинхэнэ Монгол', desc: 'Монголын урчуудын гар хийцийн бүтээлүүд' },
             { icon: '🤝', title: 'Шударга үнэ', desc: 'Урчуудаас шууд авах боломж, нэмэлт зардалгүй' },
-            { icon: '🚚', title: 'Найдвартай хүргэлт', desc: 'Монгол улсын бүх аймагт хүргэх боломжтой' },
+            { icon: '💬', title: 'Шууд харилцаа', desc: 'Урчуудтай чатаар шууд холбогдож, тохиролцох боломжтой' },
             { icon: '🔒', title: 'Аюулгүй худалдаа', desc: 'Хамгаалагдсан төлбөр, зөвлөгөө 24/7' },
           ].map(item => (
             <div key={item.title} className="bg-surface border border-border rounded-2xl p-6 hover:shadow-md transition-shadow">
@@ -125,28 +124,6 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* Stats */}
-      {totalProducts > 0 && (
-        <section className="max-w-7xl mx-auto px-4 pb-16">
-          <div className="bg-gradient-to-r from-foreground to-foreground/90 text-white rounded-2xl p-8 md:p-12">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
-              <div>
-                <div className="text-3xl md:text-4xl font-bold text-accent">{totalProducts}</div>
-                <div className="text-sm text-white/70 mt-1">Бүтээгдэхүүн</div>
-              </div>
-              <div>
-                <div className="text-3xl md:text-4xl font-bold text-accent">{categories.length}</div>
-                <div className="text-sm text-white/70 mt-1">Ангилал</div>
-              </div>
-              <div className="col-span-2 md:col-span-1">
-                <div className="text-3xl md:text-4xl font-bold text-accent">21</div>
-                <div className="text-sm text-white/70 mt-1">Аймагт хүргэнэ</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Seller CTA */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
