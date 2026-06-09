@@ -34,9 +34,30 @@ async function decrypt(session: string | undefined): Promise<SessionPayload | nu
   }
 }
 
+/**
+ * Issue a signed session JWT without touching cookies. Used by the mobile API,
+ * which returns the token in the response body for the client to store and send
+ * back as a Bearer header. The web app uses createSession() (cookie) instead.
+ */
+export async function createSessionToken(user: SessionUser): Promise<string> {
+  return encrypt({ user });
+}
+
+/** Verify a session JWT (Bearer token) and return the user, or null if invalid. */
+export async function verifySessionToken(token: string | undefined): Promise<SessionUser | null> {
+  const payload = await decrypt(token);
+  if (!payload?.user) return null;
+  // Grandfather tokens issued before email_verified was tracked: treat as verified.
+  const user = payload.user;
+  if (typeof user.emailVerified !== 'boolean') {
+    return { ...user, emailVerified: true };
+  }
+  return user;
+}
+
 export async function createSession(user: SessionUser) {
   const expiresAt = new Date(Date.now() + MAX_AGE_MS);
-  const token = await encrypt({ user });
+  const token = await createSessionToken(user);
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
@@ -50,14 +71,7 @@ export async function createSession(user: SessionUser) {
 export async function getSessionUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
-  const payload = await decrypt(token);
-  if (!payload?.user) return null;
-  // Grandfather sessions issued before email_verified was tracked: treat as verified.
-  const user = payload.user;
-  if (typeof user.emailVerified !== 'boolean') {
-    return { ...user, emailVerified: true };
-  }
-  return user;
+  return verifySessionToken(token);
 }
 
 export async function deleteSession() {

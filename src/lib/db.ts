@@ -367,3 +367,24 @@ if (currentVersion < SCHEMA_VERSION) {
 
   db.pragma(`user_version = ${SCHEMA_VERSION}`);
 }
+
+// --- Self-healing column adds (run on EVERY startup; idempotent) ---
+// Guards against the historical bug where a column was added without bumping
+// SCHEMA_VERSION, so a DB already at that version never received it (this bit
+// the dev DB twice: pickup_address, delivery_method). Pure column adds, no data
+// backfill, so re-running them is harmless.
+function ensureColumn(table: string, column: string, ddl: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (cols.length > 0 && !cols.some(c => c.name === column)) db.exec(ddl);
+}
+ensureColumn('products', 'archived_at', 'ALTER TABLE products ADD COLUMN archived_at TEXT');
+ensureColumn('products', 'view_count', 'ALTER TABLE products ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0');
+ensureColumn('products', 'personalization_prompt', 'ALTER TABLE products ADD COLUMN personalization_prompt TEXT');
+ensureColumn('order_items', 'variant', 'ALTER TABLE order_items ADD COLUMN variant TEXT');
+ensureColumn('order_items', 'personalization', 'ALTER TABLE order_items ADD COLUMN personalization TEXT');
+ensureColumn('sellers', 'story', 'ALTER TABLE sellers ADD COLUMN story TEXT');
+ensureColumn('sellers', 'banner_path', 'ALTER TABLE sellers ADD COLUMN banner_path TEXT');
+ensureColumn('sellers', 'pickup_address', 'ALTER TABLE sellers ADD COLUMN pickup_address TEXT');
+ensureColumn('orders', 'is_gift', 'ALTER TABLE orders ADD COLUMN is_gift INTEGER NOT NULL DEFAULT 0');
+ensureColumn('orders', 'gift_message', 'ALTER TABLE orders ADD COLUMN gift_message TEXT');
+ensureColumn('orders', 'delivery_method', "ALTER TABLE orders ADD COLUMN delivery_method TEXT NOT NULL DEFAULT 'delivery'");
