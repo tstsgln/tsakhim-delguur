@@ -1,5 +1,6 @@
 import 'server-only';
 import { db } from './db';
+import { sendPushToUser } from './push';
 
 export type NotificationType =
   | 'order_placed_seller'
@@ -35,6 +36,8 @@ export function createNotification(args: CreateArgs): number {
        VALUES (?, ?, ?, ?, ?)`,
     )
     .run(args.userId, args.type, args.title, args.body ?? null, args.link ?? null);
+  // Best-effort push to the user's devices (fire-and-forget; no-op if unconfigured).
+  void sendPushToUser(args.userId, args.title, args.body ?? '', args.link);
   return Number(result.lastInsertRowid);
 }
 

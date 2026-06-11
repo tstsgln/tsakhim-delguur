@@ -388,3 +388,13 @@ ensureColumn('sellers', 'pickup_address', 'ALTER TABLE sellers ADD COLUMN pickup
 ensureColumn('orders', 'is_gift', 'ALTER TABLE orders ADD COLUMN is_gift INTEGER NOT NULL DEFAULT 0');
 ensureColumn('orders', 'gift_message', 'ALTER TABLE orders ADD COLUMN gift_message TEXT');
 ensureColumn('orders', 'delivery_method', "ALTER TABLE orders ADD COLUMN delivery_method TEXT NOT NULL DEFAULT 'delivery'");
+
+// Device push tokens (FCM) — CREATE IF NOT EXISTS is idempotent, runs every startup.
+db.exec(`CREATE TABLE IF NOT EXISTS device_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  platform TEXT NOT NULL DEFAULT 'android',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id)');

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { getConversationForUser, insertMessage } from '@/lib/chat-db';
 import { getApiUser, apiError, UNAUTHORIZED } from '@/lib/api-auth';
+import { sendPushToUser } from '@/lib/push';
 
 const SendSchema = z.object({ body: z.string().trim().min(1, 'Хоосон зурвас илгээх боломжгүй').max(2000) });
 
@@ -15,7 +16,8 @@ export async function POST(req: Request, ctx: RouteContext<'/api/v1/chat/convers
   }
 
   // Must be a participant.
-  if (!getConversationForUser(conversationId, user.id)) {
+  const conv = getConversationForUser(conversationId, user.id);
+  if (!conv) {
     return apiError('Харилцаа олдсонгүй', 404);
   }
 
@@ -29,5 +31,10 @@ export async function POST(req: Request, ctx: RouteContext<'/api/v1/chat/convers
   if (!parsed.success) return apiError('Зурвас буруу байна', 400);
 
   insertMessage(conversationId, user.id, parsed.data.body);
+
+  // Push to the other participant (fire-and-forget).
+  const recipientId = user.id === conv.buyer_user_id ? conv.seller_user_id : conv.buyer_user_id;
+  void sendPushToUser(recipientId, `💬 ${user.name}`, parsed.data.body, '/messages');
+
   return Response.json({ ok: true });
 }
