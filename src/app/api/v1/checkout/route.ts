@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createOrdersFromCart } from '@/lib/orders-db';
 import { notifyNewOrder } from '@/lib/order-notifications';
+import { createWireCheckoutForOrders } from '@/lib/wire-orders';
 import { getApiUser, apiError, UNAUTHORIZED } from '@/lib/api-auth';
 
 // Mirrors the web checkout action: same validation, same email-verified gate,
@@ -29,7 +30,7 @@ const CheckoutSchema = z
     }
   });
 
-// POST /api/v1/checkout (Bearer) -> { orderIds }
+// POST /api/v1/checkout (Bearer) -> { orderIds, paymentUrl? }
 export async function POST(req: Request) {
   const user = await getApiUser(req);
   if (!user) return UNAUTHORIZED();
@@ -71,5 +72,16 @@ export async function POST(req: Request) {
 
   for (const orderId of orderIds) notifyNewOrder(orderId);
 
-  return Response.json({ orderIds });
+  // Wire hosted checkout — pay.wire.mn URL буцаана (апп Custom Tab-д нээнэ).
+  // Амжилтгүй бол зөвхөн orderIds (захиалга pending_payment — админ гар баталгаажуулалт fallback).
+  let paymentUrl: string | undefined;
+  try {
+    const origin = process.env.APP_BASE_URL ?? new URL(req.url).origin;
+    const wire = await createWireCheckoutForOrders({ orderIds, buyerUserId: user.id, origin });
+    paymentUrl = wire.url;
+  } catch (err) {
+    console.error('Wire checkout (api/v1) алдаа:', err);
+  }
+
+  return Response.json({ orderIds, paymentUrl });
 }
