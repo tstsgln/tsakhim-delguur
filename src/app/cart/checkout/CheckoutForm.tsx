@@ -22,9 +22,14 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
     if (state?.success && !successHandled.current) {
       successHandled.current = true;
       clearCart();
-      router.push('/purchases?just_ordered=1');
+      if (state.paymentUrl) {
+        // Wire-ийн hosted төлбөрийн хуудас руу шилжинэ.
+        window.location.href = state.paymentUrl;
+      } else {
+        router.push('/purchases?just_ordered=1');
+      }
     }
-  }, [state?.success, clearCart, router]);
+  }, [state?.success, state?.paymentUrl, clearCart, router]);
 
   const groups = useMemo(() => {
     const map = new Map<string, { sellerName: string; items: typeof items }>();
@@ -216,11 +221,11 @@ export default function CheckoutForm({ emailVerified }: { emailVerified: boolean
             disabled={pending || !emailVerified || !mounted || items.length === 0}
             className="w-full bg-primary text-white py-3 rounded-lg font-semibold mt-4 hover:bg-primary-dark transition-colors active:scale-95 disabled:opacity-60"
           >
-            {pending ? 'Илгээж байна...' : 'Захиалга баталгаажуулах'}
+            {pending ? 'Илгээж байна...' : 'Төлбөр төлөх'}
           </button>
 
           <p className="text-xs text-muted text-center mt-3">
-            Төлбөрийг сайтын админ шалгаж баталгаажуулна.
+            Дараагийн алхамд Wire-ээр (QPay/банкны апп) төлбөрөө төлнө.
           </p>
 
           <Link href="/cart" className="block text-center text-sm text-primary mt-3 hover:underline">

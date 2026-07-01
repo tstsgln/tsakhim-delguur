@@ -3,7 +3,9 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { getSessionUser } from '@/lib/session';
+import { createWireCheckoutForOrders } from '@/lib/wire-orders';
 import { db } from '@/lib/db';
 import {
   createOrdersFromCart,
@@ -57,6 +59,7 @@ export type CheckoutState =
       message?: string;
       success?: boolean;
       orderIds?: number[];
+      paymentUrl?: string;
     }
   | undefined;
 
@@ -115,8 +118,23 @@ export async function checkout(_state: CheckoutState, formData: FormData): Promi
     notifyNewOrder(orderId);
   }
 
+  // Wire (wire.mn) hosted checkout үүсгэж, төлбөрийн хуудасны URL-ийг буцаана.
+  // Амжилтгүй бол захиалга pending_payment хэвээр — админ гараар баталгаажуулах fallback үлдэнэ.
+  let paymentUrl: string | undefined;
+  try {
+    const h = await headers();
+    const host = h.get('x-forwarded-host') ?? h.get('host');
+    const proto = h.get('x-forwarded-proto') ?? 'http';
+    // APP_BASE_URL байвал (production: https://tsetseglen.mn) түүнийг эрхэмлэнэ — email.ts-тэй ижил жишиг.
+    const origin = process.env.APP_BASE_URL ?? `${proto}://${host}`;
+    const wire = await createWireCheckoutForOrders({ orderIds, buyerUserId: user.id, origin });
+    paymentUrl = wire.url;
+  } catch (err) {
+    console.error('Wire checkout үүсгэхэд алдаа:', err);
+  }
+
   revalidatePath('/purchases');
-  return { success: true, orderIds };
+  return { success: true, orderIds, paymentUrl };
 }
 
 async function requireAdmin() {

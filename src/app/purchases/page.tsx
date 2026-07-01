@@ -9,7 +9,7 @@ import { orderStatusLabel, orderStatusColor, formatOrderDate } from '@/lib/order
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ just_ordered?: string }>;
+  searchParams: Promise<{ just_ordered?: string; payment?: string }>;
 }
 
 export default async function PurchasesPage({ searchParams }: PageProps) {
@@ -24,9 +24,24 @@ export default async function PurchasesPage({ searchParams }: PageProps) {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">🛍️ Миний захиалгууд</h1>
 
-      {sp.just_ordered === '1' && orders.length > 0 && (
+      {sp.payment === 'success' && (
         <div className="bg-success/10 border border-success/40 text-success rounded-xl p-4 mb-5 text-sm">
-          ✓ Захиалга амжилттай үүслээ. Манай админ таны төлбөрийг шалгаад баталгаажуулна.
+          ✓ Төлбөр амжилттай! Захиалга баталгаажлаа.
+        </div>
+      )}
+      {sp.payment === 'pending' && (
+        <div className="bg-warning/10 border border-warning/40 text-warning-foreground rounded-xl p-4 mb-5 text-sm">
+          Төлбөр хараахан баталгаажаагүй байна. Хэдхэн секундын дараа хуудсаа сэргээж шалгана уу.
+        </div>
+      )}
+      {sp.payment === 'canceled' && (
+        <div className="bg-border/20 border border-border text-muted rounded-xl p-4 mb-5 text-sm">
+          Төлбөр цуцлагдсан. Захиалга «Төлбөр хүлээж буй» төлөвтэй хэвээр байна — дэлгэрэнгүйгээс дахин төлж болно.
+        </div>
+      )}
+      {!sp.payment && sp.just_ordered === '1' && orders.length > 0 && (
+        <div className="bg-success/10 border border-success/40 text-success rounded-xl p-4 mb-5 text-sm">
+          ✓ Захиалга амжилттай үүслээ.
         </div>
       )}
 

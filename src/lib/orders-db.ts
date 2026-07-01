@@ -276,6 +276,17 @@ export function markPaid(orderId: number): { ok: boolean; reason?: string } {
   return { ok: true };
 }
 
+/** Wire-ийн PaymentIntent id-г захиалгуудад холбож, payment_method-г 'wire' болгоно. */
+export function attachPaymentIntent(orderIds: number[], paymentIntentId: string): void {
+  const upd = db.prepare(
+    `UPDATE orders SET payment_method = 'wire', payment_ref = ? WHERE id = ? AND status = 'pending_payment'`,
+  );
+  const tx = db.transaction((ids: number[]) => {
+    for (const id of ids) upd.run(paymentIntentId, id);
+  });
+  tx(orderIds);
+}
+
 export function markShipped(orderId: number, sellerUserId: number): { ok: boolean; reason?: string } {
   const order = getOrder(orderId);
   if (!order) return { ok: false, reason: 'Захиалга олдсонгүй' };
