@@ -3,7 +3,6 @@
 import { z } from 'zod';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import crypto from 'node:crypto';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -12,7 +11,6 @@ import type { SellerRow } from '@/lib/types';
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_IMAGE_EXTS,
-  EXT_TO_MIME,
   MAX_IMAGE_BYTES,
   validateImageFile,
   saveImageFile,
@@ -311,20 +309,9 @@ export async function createProduct(_state: ProductState, formData: FormData): P
     }
   }
 
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'products');
-  await fs.mkdir(uploadsDir, { recursive: true });
-
   const savedPaths: string[] = [];
   for (const f of files) {
-    let ext = path.extname(f.name).toLowerCase();
-    if (!ALLOWED_IMAGE_EXTS.has(ext)) {
-      ext = Object.entries(EXT_TO_MIME).find(([, m]) => m === f.type)?.[0] ?? '.jpg';
-    }
-    const filename = `${crypto.randomUUID()}${ext}`;
-    const fullPath = path.join(uploadsDir, filename);
-    const bytes = Buffer.from(await f.arrayBuffer());
-    await fs.writeFile(fullPath, bytes);
-    savedPaths.push(`/uploads/products/${filename}`);
+    savedPaths.push(await saveImageFile(f, 'products'));
   }
 
   const options = parseOptionsFromForm(formData);
